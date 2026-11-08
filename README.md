@@ -22,7 +22,8 @@ For a single process, run `pnpm build` and then `pnpm --filter @hy/server start`
 - Fills, funding and position history sync incrementally into SQLite at `data/dashboard.db`. Daily PnL is a SQL aggregation.
 - Candles are fetched from the public klines endpoint on demand, stored in SQLite, and refreshed at most once per 2 seconds per interval no matter how many browsers ask. Concurrent requests share one upstream call.
 - The API has a per-IP rate limit and a cap on open streams.
-- `apps/web` is Vite, React and lightweight-charts.
+- `apps/web` is Vite, React, Tailwind with shadcn/ui components, Lucide icons and lightweight-charts. One Zustand store holds the latest SSE snapshot and panels subscribe by selector. History and candles use plain fetch.
+- `pnpm verify:live` compares the running server with direct signed calls and greps served responses and the bundle for the key.
 
 ## Security
 
