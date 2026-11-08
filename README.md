@@ -10,6 +10,8 @@ Requires Node 24 (uses the built-in `node:sqlite`) and pnpm 10.
 2. `pnpm install`
 3. `pnpm dev` starts the server on :8787 and the web app on :5173.
 
+To run against a second (test) sub-account, add `BACKPACK_TEST_API_KEY` and `BACKPACK_TEST_API_SECRET` to `.env`. `pnpm dev:test` runs the server on :8788 with `data/test.db`, `pnpm probe:test` writes samples to `scripts/samples-test/`, and `pnpm verify:live:test` checks that server. The mapping onto `BACKPACK_API_KEY` and `BACKPACK_API_SECRET` happens in that process only, so `.env` is never edited. Run `pnpm dev:test` and the live `pnpm dev` at different times, since both start a web dev server on :5173.
+
 Other scripts are `pnpm build`, `pnpm typecheck`, `pnpm test` and `pnpm probe`. The probe calls each read endpoint once and writes redacted samples to `scripts/samples/`. The parser tests run against those samples.
 
 For a single process, run `pnpm build` and then `pnpm --filter @hy/server start`. The server serves `apps/web/dist` when it exists.
@@ -21,6 +23,7 @@ For a single process, run `pnpm build` and then `pnpm --filter @hy/server start`
 - One poller reads positions, orders and collateral every 2 seconds and keeps the latest snapshot in memory. Browsers receive it over SSE at `/api/stream`. Browser traffic never triggers a Backpack call for the snapshot.
 - Fills, funding and position history sync incrementally into SQLite at `data/dashboard.db`. Daily PnL is a SQL aggregation.
 - Candles are fetched from the public klines endpoint on demand, stored in SQLite, and refreshed at most once per 2 seconds per interval no matter how many browsers ask. Concurrent requests share one upstream call.
+- The poller also records an equity snapshot per 5 minute bucket (restarts overwrite the bucket, so they never duplicate). `/api/equity?range=1d|7d|30d|all` downsamples in SQL to at most about 600 points. The curve is raw account equity. Deposits and withdrawals are not tracked, so use it as performance only for an account without capital flows. There is no backfill before the first snapshot, since that needs a known starting equity.
 - The API has a per-IP rate limit and a cap on open streams.
 - `apps/web` is Vite, React, Tailwind with shadcn/ui components, Lucide icons and lightweight-charts. One Zustand store holds the latest SSE snapshot and panels subscribe by selector. History and candles use plain fetch.
 - `pnpm verify:live` compares the running server with direct signed calls and greps served responses and the bundle for the key.
