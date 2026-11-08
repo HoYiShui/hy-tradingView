@@ -59,7 +59,7 @@ const fills = JSON.parse((await get("/api/fills?limit=1000")).text);
 const directFills = (await client.signedGet("fillHistoryQueryAll", "/wapi/v1/history/fills", { limit: 1000 })) as unknown[];
 check(fills.length === directFills.length, `fill count ${fills.length} vs direct ${directFills.length}`);
 
-const candles = JSON.parse((await get("/api/candles?interval=1h")).text);
+const candles = JSON.parse((await get("/api/candles?interval=1h&limit=1000")).text);
 const direct = (await client.publicGet("/api/v1/klines", {
   symbol: "BTC_USDC_PERP",
   interval: "1h",
