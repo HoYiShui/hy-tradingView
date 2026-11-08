@@ -9,6 +9,8 @@ export const READ_INSTRUCTIONS = [
   "fillHistoryQueryAll",
   "fundingHistoryQueryAll",
   "positionHistoryQueryAll",
+  "depositQueryAll",
+  "withdrawalQueryAll",
 ] as const;
 export type ReadInstruction = (typeof READ_INSTRUCTIONS)[number];
 

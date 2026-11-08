@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { INTERVAL_MS, MarketSymbol, Millis } from "@hy/types";
 import { openStore } from "./db.js";
 import type { ExchangeReader } from "./exchange.js";
-import { backfillStart, createCandleService } from "./history.js";
+import { backfillStart, createCandleService, syncTransfers } from "./history.js";
 
 const symbol = MarketSymbol.parse("BTC_USDC_PERP");
 const H = INTERVAL_MS["1h"];
@@ -105,5 +105,26 @@ describe("backfillStart", () => {
     expect(backfillStart({ now: NOW, step, earliestFill: NOW - 10 * H, depthBars: null })).toBe(NOW - 1000 * H);
     expect(backfillStart({ now: NOW, step, earliestFill: null, depthBars: null })).toBe(NOW - 1000 * H);
     expect(backfillStart({ now: NOW, step, earliestFill: NOW - 1e9 * H, depthBars: null })).toBe(NOW - 60_000 * H);
+  });
+});
+
+describe("transfer sync", () => {
+  const deposit = (id: string, at: number) => ({ id, at: Millis.parse(at), asset: "USDC", flow: "deposit", status: "counted", amount: 10 }) as never;
+
+  it("reads everything first, then only from a recheck window before the latest stored transfer, and never duplicates", async () => {
+    const froms: (number | null)[] = [];
+    const day = 86_400_000;
+    const reader = {
+      async fetchTransfers({ from }: { from: number | null }) {
+        froms.push(from);
+        return [deposit("a", 10 * day), deposit("b", 20 * day)];
+      },
+    } as unknown as ExchangeReader;
+    const store = openStore(":memory:");
+    await syncTransfers(reader, store);
+    await syncTransfers(reader, store);
+    expect(froms).toEqual([null, 17 * day]);
+    expect(store.allTransfers().map((t) => t.id)).toEqual(["a", "b"]);
+    store.close();
   });
 });

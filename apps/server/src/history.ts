@@ -11,6 +11,14 @@ export async function syncFunding(reader: ExchangeReader, store: Store): Promise
   store.saveFunding(await reader.fetchFunding({ from: store.latestFundingAt() }));
 }
 
+const TRANSFER_RECHECK_MS = 3 * 86_400_000;
+
+export async function syncTransfers(reader: ExchangeReader, store: Store): Promise<void> {
+  const latest = store.latestTransferAt();
+  const from = latest === null ? null : Millis.parse(Math.max(0, latest - TRANSFER_RECHECK_MS));
+  store.saveTransfers(await reader.fetchTransfers({ from }));
+}
+
 export async function syncPositionHistory(reader: ExchangeReader, store: Store): Promise<void> {
   store.savePositions(await reader.fetchPositionHistory());
 }

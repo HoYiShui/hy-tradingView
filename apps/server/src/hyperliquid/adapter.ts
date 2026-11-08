@@ -19,6 +19,7 @@ import {
   type AccountMode,
   type SpotPricing,
 } from "./parse.js";
+import { parseLedgerUpdates } from "./transfers.js";
 import { buildSnapshot, type UsdPerUnit } from "./snapshot.js";
 
 const CHART_SYMBOL = MarketSymbol.parse("BTC");
@@ -161,6 +162,10 @@ export function createHyperliquidReader(input: {
     async fetchFunding({ from }) {
       const raw = await pagedByTime(from ?? 0, async (startTime) => (await client.info({ type: "userFunding", user, startTime })) as { time: number }[]);
       return firstOfEach<FundingPayment>(parseFunding(raw), (p) => `${p.symbol}:${p.at}`);
+    },
+    async fetchTransfers({ from }) {
+      const raw = await pagedByTime(from ?? 0, async (startTime) => (await client.info({ type: "userNonFundingLedgerUpdates", user, startTime })) as { time: number }[]);
+      return firstOfEach(parseLedgerUpdates(raw, user), (t) => t.id);
     },
     async fetchPositionHistory() {
       return [];

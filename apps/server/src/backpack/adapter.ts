@@ -5,6 +5,8 @@ import { buildSnapshot } from "./snapshot.js";
 import {
   parseAccountParts,
   parseCandles,
+  parseDeposits,
+  parseWithdrawals,
   parseFills,
   parseFunding,
   parseOpenOrders,
@@ -25,6 +27,11 @@ export const BACKPACK_CAPABILITIES: ExchangeCapabilities = {
   minSyncMs: 5_000,
   minCandleRefreshMs: 2_000,
 };
+
+function rows(body: unknown): unknown[] {
+  if (!Array.isArray(body)) throw new Error("expected a list response");
+  return body;
+}
 
 async function pageAll<T>(fetchPage: (offset: number) => Promise<T[]>): Promise<T[]> {
   const all: T[] = [];
@@ -81,6 +88,16 @@ export function createBackpackReader(client: BackpackClient, now: () => number =
       return pageAll(async (offset) =>
         parsePositionHistory(await client.signedGet("positionHistoryQueryAll", "/wapi/v1/history/position", { limit: PAGE, offset })),
       );
+    },
+    async fetchTransfers({ from }) {
+      const params = (offset: number) => ({ limit: PAGE, offset, ...(from === null ? {} : { from }) });
+      const deposits = await pageAll(async (offset) =>
+        rows(await client.signedGet("depositQueryAll", "/wapi/v1/capital/deposits", params(offset))),
+      );
+      const withdrawals = await pageAll(async (offset) =>
+        rows(await client.signedGet("withdrawalQueryAll", "/wapi/v1/capital/withdrawals", params(offset))),
+      );
+      return [...parseDeposits(deposits), ...parseWithdrawals(withdrawals)];
     },
     async *orderHistory(): AsyncGenerator<OrderRecord[]> {
       for (let offset = 0; ; offset += PAGE) {

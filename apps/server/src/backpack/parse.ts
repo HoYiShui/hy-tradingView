@@ -11,6 +11,7 @@ import {
   Percent,
   Price,
   Qty,
+  Transfer,
   type TriggerSize,
   Usd,
 } from "@hy/types";
@@ -18,6 +19,8 @@ import type { FundingPayment, PositionRecord } from "../exchange.js";
 import {
   RawAccount,
   RawCollateral,
+  RawDeposit,
+  RawWithdrawal,
   RawFill,
   RawFunding,
   RawKline,
@@ -209,5 +212,53 @@ export function parseOrderHistory(input: unknown): OrderRecord[] {
         status: status.data,
         createdAt: Millis.parse(raw.createdAt),
       };
+    });
+}
+
+export const STABLE_ASSETS: ReadonlySet<string> = new Set(["USDC", "USDT"]);
+const DEAD_STATUSES: ReadonlySet<string> = new Set(["cancelled", "canceled", "declined", "expired", "failed", "refunded"]);
+
+type TransferInput = { id: string; at: Millis; asset: string; flow: Transfer["flow"]; status: string; signedQuantity: number };
+
+function transferOf(t: TransferInput): Transfer[] {
+  const status = t.status.toLowerCase();
+  if (DEAD_STATUSES.has(status)) return [];
+  const base = { id: t.id, at: t.at, asset: t.asset, flow: t.flow };
+  if (status !== "confirmed") return [{ ...base, status: "excluded", reason: "unsettled" }];
+  if (!STABLE_ASSETS.has(t.asset)) return [{ ...base, status: "excluded", reason: "unpriced" }];
+  return [{ ...base, status: "counted", amount: Usd.parse(t.signedQuantity) }];
+}
+
+export function parseDeposits(input: unknown): Transfer[] {
+  return z
+    .array(z.unknown())
+    .parse(input)
+    .flatMap((x) => {
+      const raw = RawDeposit.parse(x);
+      return transferOf({
+        id: `deposit:${raw.id}`,
+        at: Millis.parse(raw.createdAt),
+        asset: raw.symbol,
+        flow: raw.source === "internal" ? "transfer" : "deposit",
+        status: raw.status,
+        signedQuantity: raw.quantity,
+      });
+    });
+}
+
+export function parseWithdrawals(input: unknown): Transfer[] {
+  return z
+    .array(z.unknown())
+    .parse(input)
+    .flatMap((x) => {
+      const raw = RawWithdrawal.parse(x);
+      return transferOf({
+        id: `withdrawal:${raw.id}`,
+        at: Millis.parse(raw.createdAt),
+        asset: raw.symbol,
+        flow: raw.isInternal ? "transfer" : "withdrawal",
+        status: raw.status,
+        signedQuantity: -(raw.quantity + raw.fee),
+      });
     });
 }

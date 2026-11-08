@@ -115,3 +115,24 @@ export const RawSpotMeta = z.object({
 });
 
 export const RawMids = z.record(z.string(), decimal);
+
+export const RawLedgerUpdate = z.object({
+  time: z.number().int(),
+  hash: z.string(),
+  delta: z.looseObject({ type: z.string() }),
+});
+
+const Party = { user: z.string(), destination: z.string() };
+
+export const RawLedgerDeltas = {
+  deposit: z.object({ usdc: decimal }),
+  withdraw: z.object({ usdc: decimal, fee: decimal }),
+  send: z.object({ ...Party, token: z.string(), usdcValue: decimal, fee: decimal, feeToken: z.string().default("") }),
+  spotTransfer: z.object({ ...Party, token: z.string(), usdcValue: decimal, fee: decimal, feeToken: z.string().default("") }),
+  subAccountTransfer: z.object({ ...Party, usdc: decimal }),
+  vaultDeposit: z.object({ usdc: decimal }),
+  vaultWithdraw: z.object({ netWithdrawnUsd: decimal }),
+  vaultCreate: z.object({ usdc: decimal, fee: decimal }),
+  vaultDistribution: z.object({ usdc: decimal }),
+  rewardsClaim: z.object({ amount: decimal, token: z.string() }),
+} as const;

@@ -6,7 +6,7 @@ import { repoRoot } from "./env.js";
 import type { ExchangeCapabilities, ExchangeReader } from "./exchange.js";
 import { createReader } from "./exchanges.js";
 import { createFeed } from "./feed.js";
-import { createCandleService, syncFills, syncFunding, syncOrders, syncPositionHistory } from "./history.js";
+import { createCandleService, syncFills, syncFunding, syncOrders, syncPositionHistory, syncTransfers } from "./history.js";
 
 export type AccountContext = {
   info: AccountInfo;
@@ -31,11 +31,12 @@ type Pacing = Pick<ExchangeCapabilities, "minLivePollMs" | "minSyncMs">;
 const fills: Job = { name: "fill sync", everyMs: 5_000, run: (c) => syncFills(c.reader, c.store) };
 const funding: Job = { name: "funding sync", everyMs: 60_000, run: (c) => syncFunding(c.reader, c.store) };
 const positions: Job = { name: "position sync", everyMs: 60_000, run: (c) => syncPositionHistory(c.reader, c.store) };
+const transfers: Job = { name: "transfer sync", everyMs: 60_000, run: (c) => syncTransfers(c.reader, c.store) };
 const orders: Job = { name: "order sync", everyMs: 60_000, run: (c) => syncOrders(c.reader, c.store) };
 
 const SURFACE_JOBS: Record<Surface, Job[]> = {
   dashboard: [fills, funding, positions],
-  replay: [fills, funding, orders],
+  replay: [fills, funding, transfers, orders],
 };
 
 const DASHBOARD_POLL_MS = 2_000;

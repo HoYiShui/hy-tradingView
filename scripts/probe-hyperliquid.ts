@@ -3,8 +3,11 @@ import { createHyperliquidClient, type InfoRequest } from "../apps/server/src/hy
 import type { ExchangeCredentials } from "../apps/server/src/config.js";
 
 const HASHLIKE = /0x[0-9a-fA-F]{40,64}\b/g;
-const redact = (body: unknown): string =>
-  JSON.stringify(body).replace(HASHLIKE, (m) => `0x${"0".repeat(m.length - 2)}`);
+const SELF_PLACEHOLDER = `0x${"0".repeat(39)}1`;
+const redact = (body: unknown, address: string): string =>
+  JSON.stringify(body).replace(HASHLIKE, (m) =>
+    m.toLowerCase() === address.toLowerCase() ? SELF_PLACEHOLDER : `0x${"0".repeat(m.length - 2)}`,
+  );
 
 type Probe = { name: string; request: InfoRequest; keep?: (body: unknown) => unknown };
 const tail = (n: number) => (body: unknown) => (Array.isArray(body) ? body.slice(-n) : body);
@@ -37,7 +40,7 @@ export async function probeHyperliquid({ apiUrl, address }: Extract<ExchangeCred
   for (const p of probes) {
     try {
       const body = await client.info(p.request);
-      writeFileSync(new URL(`${p.name}.json`, dir), redact(p.keep ? p.keep(body) : body));
+      writeFileSync(new URL(`${p.name}.json`, dir), redact(p.keep ? p.keep(body) : body, address));
       console.log(`ok   ${p.name} (${Array.isArray(body) ? `${body.length} items` : typeof body})`);
     } catch (e) {
       console.log(`fail ${p.name}: ${e instanceof Error ? e.message : String(e)}`);

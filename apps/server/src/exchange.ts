@@ -1,4 +1,4 @@
-import type { AccountInfo, AccountSnapshot, Candle, CandleInterval, Exchange, Fill, MarketSymbol, Millis, OrderRecord, Usd } from "@hy/types";
+import type { AccountInfo, AccountSnapshot, Candle, CandleInterval, Exchange, Fill, MarketSymbol, Millis, OrderRecord, Transfer, Usd } from "@hy/types";
 
 export type FundingPayment = { symbol: MarketSymbol; at: Millis; amount: Usd; rate: number };
 
@@ -28,6 +28,7 @@ export interface ExchangeReader {
   fetchFills(input: { from: Millis | null }): Promise<Fill[]>;
   fetchFunding(input: { from: Millis | null }): Promise<FundingPayment[]>;
   fetchPositionHistory(): Promise<PositionRecord[]>;
+  fetchTransfers(input: { from: Millis | null }): Promise<Transfer[]>;
   orderHistory(): AsyncIterable<OrderRecord[]>;
   fetchCandles(input: { symbol: MarketSymbol; interval: CandleInterval; from: Millis; to: Millis }): Promise<Candle[]>;
 }

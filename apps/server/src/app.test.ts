@@ -38,6 +38,13 @@ function fakeReader(input: { exchange: Exchange; chartSymbol: string; equity: nu
     fetchLive: async () => (calls.push("live"), snapshot(input.equity)),
     fetchFills: async () => (calls.push("fills"), input.fillIds.map((id, i) => fill(id, chartSymbol, NOW - (100 - i) * 1000))),
     fetchFunding: async () => (calls.push("funding"), []),
+    fetchTransfers: async () => (
+      calls.push("transfers"),
+      [
+        { id: "d1", at: Millis.parse(NOW - 90_000), asset: "USDC", flow: "deposit", status: "counted", amount: Usd.parse(25) },
+        { id: "d2", at: Millis.parse(NOW - 80_000), asset: "SOL", flow: "transfer", status: "excluded", reason: "unpriced" },
+      ]
+    ),
     fetchPositionHistory: async () => (calls.push("positions"), []),
     orderHistory: async function* () {
       calls.push("orders");
@@ -122,6 +129,11 @@ describe("per-account routing", () => {
     expect(payload.anchor.equity).toBe(7);
     expect(payload.symbol).toBe("BTC_USDC_PERP");
     expect(decodePayload(payload).fills.map((f) => f.id)).toEqual(["T1"]);
+    await vi.waitFor(async () => {
+      const synced = await (await get("/api/replay?account=test&interval=1h")).json();
+      expect(synced.transfers).toEqual([[NOW - 90_000, 25]]);
+      expect(synced.excludedTransfers).toBe(1);
+    });
     expect(t.reader.calls).toContain("candles");
     const other = await (await get("/api/replay?account=hl&interval=1h")).json();
     expect(other.symbol).toBe("BTC-PERP");
@@ -164,7 +176,7 @@ describe("planFor", () => {
     const p = planFor(["replay"], PACING);
     expect(p.pollMs).toBeGreaterThanOrEqual(30_000);
     expect(p.recordEquity).toBe(false);
-    expect(p.jobs.map((j) => j.name)).toEqual(["fill sync", "funding sync", "order sync"]);
+    expect(p.jobs.map((j) => j.name)).toEqual(["fill sync", "funding sync", "transfer sync", "order sync"]);
   });
 
   it("polls a dashboard account fast, records equity and skips order history", () => {
@@ -175,6 +187,6 @@ describe("planFor", () => {
   });
 
   it("unions the jobs of both surfaces without repeats", () => {
-    expect(planFor(["dashboard", "replay"], PACING).jobs.map((j) => j.name)).toEqual(["fill sync", "funding sync", "position sync", "order sync"]);
+    expect(planFor(["dashboard", "replay"], PACING).jobs.map((j) => j.name)).toEqual(["fill sync", "funding sync", "position sync", "transfer sync", "order sync"]);
   });
 });

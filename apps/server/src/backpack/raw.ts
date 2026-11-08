@@ -102,3 +102,22 @@ export const RawOrderHistory = z.object({
   triggerPrice: decimal.nullish(),
   createdAt: utcTimestamp,
 });
+
+export const RawDeposit = z.object({
+  id: z.number().int(),
+  createdAt: utcTimestamp,
+  quantity: decimal,
+  symbol: z.string(),
+  source: z.string(),
+  status: z.string(),
+});
+
+export const RawWithdrawal = z.object({
+  id: z.number().int(),
+  createdAt: utcTimestamp,
+  quantity: decimal,
+  fee: decimal,
+  symbol: z.string(),
+  isInternal: z.boolean(),
+  status: z.string(),
+});

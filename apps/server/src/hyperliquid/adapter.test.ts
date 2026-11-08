@@ -90,6 +90,21 @@ describe("hyperliquid reader", () => {
     expect(calls).toEqual([{ type: "userFillsByTime", user: ADDRESS, startTime: 1234 }]);
   });
 
+  it("pages the ledger by time, keeps each update once and starts from the last stored transfer", async () => {
+    const hash = `0x${"0".repeat(64)}`;
+    const ledger = Array.from({ length: 600 }, (_, i) => ({ time: i + 1, hash, delta: { type: "deposit", usdc: "1.0" } }));
+    const { client, calls } = fakeClient({
+      userNonFundingLedgerUpdates: (r) => (r.type === "userNonFundingLedgerUpdates" ? ledger.filter((u) => u.time >= r.startTime).slice(0, 500) : []),
+    });
+    const all = await reader(client).fetchTransfers({ from: null });
+    expect(all).toHaveLength(600);
+    expect(new Set(all.map((t) => t.id)).size).toBe(600);
+    expect(calls.map((c) => (c.type === "userNonFundingLedgerUpdates" ? c.startTime : -1))).toEqual([0, 500]);
+    calls.length = 0;
+    await reader(client).fetchTransfers({ from: Millis.parse(590) });
+    expect(calls).toEqual([{ type: "userNonFundingLedgerUpdates", user: ADDRESS, startTime: 590 }]);
+  });
+
   it("returns candles oldest first", async () => {
     const shuffled = [...candles].reverse();
     const { client } = fakeClient({ candleSnapshot: () => shuffled });
