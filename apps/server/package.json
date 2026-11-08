@@ -9,6 +9,7 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
+    "@hy/replay": "workspace:*",
     "@hy/types": "workspace:*",
     "@hono/node-server": "^2.1.6",
     "hono": "^4.13.17",

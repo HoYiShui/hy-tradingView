@@ -183,6 +183,47 @@ export const ReplayState = z.object({
 });
 export type ReplayState = z.infer<typeof ReplayState>;
 
+export const ORDER_STATUSES = ["New", "TriggerPending", "PartiallyFilled", "Filled", "Cancelled", "Expired", "TriggerFailed"] as const;
+export const OrderStatus = z.enum(ORDER_STATUSES);
+export type OrderStatus = z.infer<typeof OrderStatus>;
+
+export const OrderRecord = z.object({
+  id: z.string(),
+  symbol: MarketSymbol,
+  side: Side,
+  kind: z.enum(["limit", "trigger", "market"]),
+  price: Price.nullable(),
+  quantity: Qty,
+  executedQuantity: Qty,
+  status: OrderStatus,
+  createdAt: Millis,
+});
+export type OrderRecord = z.infer<typeof OrderRecord>;
+
+export const OrderSpan = z.object({
+  symbol: MarketSymbol,
+  side: Side,
+  kind: z.enum(["limit", "trigger"]),
+  price: Price,
+  quantity: Qty,
+  from: Millis,
+  to: Millis,
+  estimated: z.boolean(),
+});
+export type OrderSpan = z.infer<typeof OrderSpan>;
+
+export const ReplayPayload = z.object({
+  interval: CandleInterval,
+  symbol: MarketSymbol,
+  anchor: ReplayAnchor,
+  fills: z.array(z.tuple([z.string(), MarketSymbol, z.number(), Price, Qty, Usd, Millis])),
+  funding: z.array(z.tuple([MarketSymbol, Millis, Usd])),
+  candles: z.array(z.tuple([Millis, Price, Price, Price, Price, Qty])),
+  orders: z.array(z.tuple([MarketSymbol, z.number(), z.number(), Price, Qty, Millis, Millis, z.number()])),
+  candlesComplete: z.boolean(),
+});
+export type ReplayPayload = z.infer<typeof ReplayPayload>;
+
 export const CHART_SYMBOL = MarketSymbol.parse("BTC_USDC_PERP");
 
 export const API = {
@@ -192,4 +233,5 @@ export const API = {
   fills: "/api/fills",
   dailyPnl: "/api/pnl/daily",
   equity: "/api/equity",
+  replay: "/api/replay",
 } as const;

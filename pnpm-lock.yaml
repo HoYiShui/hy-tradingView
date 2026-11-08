@@ -26,6 +26,9 @@ importers:
       '@hono/node-server':
         specifier: ^2.1.6
         version: 2.1.6(hono@4.13.17)
+      '@hy/replay':
+        specifier: workspace:*
+        version: link:../../packages/replay
       '@hy/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -38,6 +41,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@hy/replay':
+        specifier: workspace:*
+        version: link:../../packages/replay
       '@hy/types':
         specifier: workspace:*
         version: link:../../packages/types

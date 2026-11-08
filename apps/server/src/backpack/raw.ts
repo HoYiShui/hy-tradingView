@@ -97,3 +97,16 @@ export const RawKline = z.object({
   close: decimal,
   volume: decimal,
 });
+
+export const RawOrderHistory = z.object({
+  id: z.string(),
+  symbol: z.string(),
+  side: z.enum(["Bid", "Ask"]),
+  orderType: z.enum(["Limit", "Market"]),
+  status: z.string(),
+  price: decimal.nullish(),
+  quantity: decimal.nullish(),
+  executedQuantity: decimal,
+  triggerPrice: decimal.nullish(),
+  createdAt: utcTimestamp,
+});

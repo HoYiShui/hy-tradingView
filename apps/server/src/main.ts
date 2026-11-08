@@ -9,7 +9,7 @@ import { loadConfig } from "./config.js";
 import { loadRootEnv, repoRoot } from "./env.js";
 import { equityBucket, openStore } from "./db.js";
 import { createFeed } from "./feed.js";
-import { createCandleService, syncFills, syncSlowHistory } from "./history.js";
+import { createCandleService, syncFills, syncOrders, syncSlowHistory } from "./history.js";
 
 loadRootEnv();
 
@@ -49,6 +49,7 @@ function every(ms: number, name: string, work: () => Promise<void>): void {
 
 every(5_000, "fill sync", () => syncFills(reader, store));
 every(60_000, "history sync", () => syncSlowHistory(reader, store));
+every(60_000, "order sync", () => syncOrders(reader, store));
 let lastEquityBucket = -1;
 feed.subscribe((f) => {
   if (f.kind !== "live") return;

@@ -8,6 +8,7 @@ import {
   parseFills,
   parseFunding,
   parseOpenOrders,
+  parseOrderHistory,
   parsePositionHistory,
   parsePositions,
 } from "./parse.js";
@@ -51,6 +52,9 @@ export function createBackpackReader(client: BackpackClient, now: () => number =
       return parsePositionHistory(
         await client.signedGet("positionHistoryQueryAll", "/wapi/v1/history/position", { limit, offset }),
       );
+    },
+    async fetchOrderHistory({ limit, offset }) {
+      return parseOrderHistory(await client.signedGet("orderHistoryQueryAll", "/wapi/v1/history/orders", { limit, offset }));
     },
     async fetchCandles({ symbol, interval, from, to }) {
       return parseCandles(

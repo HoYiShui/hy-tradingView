@@ -7,6 +7,7 @@ import { API, CandleInterval, EquityRange, MarketSymbol, Millis, type Feed } fro
 import type { Store } from "./db.js";
 import type { createCandleService } from "./history.js";
 import type { createFeed } from "./feed.js";
+import { buildReplayPayload } from "./replay.js";
 import { createRateLimiter } from "./rateLimit.js";
 
 const MAX_STREAM_CLIENTS = 200;
@@ -18,6 +19,7 @@ const CandleQuery = z.object({
   limit: z.coerce.number().int().min(1).max(1000).default(500),
 });
 const EquityQuery = z.object({ range: EquityRange.default("7d") });
+const ReplayQuery = z.object({ interval: CandleInterval.default("1h") });
 const FillQuery = z.object({
   limit: z.coerce.number().int().min(1).max(5000).default(200),
   symbol: MarketSymbol.optional(),
@@ -72,6 +74,14 @@ export function createApp(deps: {
     const q = EquityQuery.safeParse(c.req.query());
     if (!q.success) return c.json({ error: "bad query" }, 400);
     return c.json(deps.store.equity(q.data.range, Date.now()));
+  });
+
+  app.get(API.replay, (c) => {
+    const q = ReplayQuery.safeParse(c.req.query());
+    if (!q.success) return c.json({ error: "bad query" }, 400);
+    const feed = deps.feed.current();
+    if (feed.kind !== "live" && feed.kind !== "stale") return c.json({ error: "no snapshot yet" }, 503);
+    return c.json(buildReplayPayload({ store: deps.store, snapshot: feed.snapshot, interval: q.data.interval }));
   });
 
   app.get(API.dailyPnl, (c) => c.json(deps.store.dailyPnl()));

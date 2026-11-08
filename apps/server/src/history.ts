@@ -30,6 +30,19 @@ export async function syncSlowHistory(reader: ExchangeReader, store: Store): Pro
   store.savePositions(positions);
 }
 
+const FINAL = new Set(["Filled", "Cancelled", "Expired", "TriggerFailed"]);
+
+export async function syncOrders(reader: ExchangeReader, store: Store): Promise<void> {
+  for (let offset = 0; ; offset += PAGE) {
+    const page = await reader.fetchOrderHistory({ limit: PAGE, offset });
+    const known = store.knownOrderStatus(page.map((o) => o.id));
+    store.saveOrders(page);
+    const settled = page.every((o) => FINAL.has(o.status) && known.get(o.id) === o.status);
+    if (page.length < PAGE || settled) return;
+    await new Promise((r) => setTimeout(r, PAGE_PAUSE_MS));
+  }
+}
+
 export const INTERVAL_MS: Record<CandleInterval, number> = {
   "1m": 60_000,
   "5m": 5 * 60_000,

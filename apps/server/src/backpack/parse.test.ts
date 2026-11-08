@@ -123,3 +123,15 @@ describe("snapshot from the recorded account", () => {
     expect(snapshot.openOrders).toHaveLength(5);
   });
 });
+
+describe("order history", () => {
+  it("classifies trigger, limit and market orders and keeps the status", async () => {
+    const { default: orderHistory } = await import("../../../../scripts/samples-test/order-history.json");
+    const { parseOrderHistory } = await import("./parse.js");
+    const parsed = parseOrderHistory(orderHistory);
+    expect(parsed).toHaveLength(orderHistory.length);
+    expect(new Set(parsed.map((o) => o.kind))).toEqual(new Set(["market", "trigger", "limit"]));
+    const filledLimit = parsed.find((o) => o.kind === "limit" && o.status === "Filled");
+    expect(filledLimit?.executedQuantity).toBe(filledLimit?.quantity);
+  });
+});

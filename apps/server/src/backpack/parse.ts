@@ -5,6 +5,8 @@ import {
   MarketSymbol,
   Millis,
   OpenOrder,
+  OrderRecord,
+  OrderStatus,
   Position,
   Percent,
   Price,
@@ -19,6 +21,7 @@ import {
   RawFunding,
   RawKline,
   RawOpenOrder,
+  RawOrderHistory,
   RawPosition,
   RawPositionHistory,
 } from "./raw.js";
@@ -186,6 +189,30 @@ export function parseCandles(input: unknown): Candle[] {
         low: Price.parse(raw.low),
         close: Price.parse(raw.close),
         volume: Qty.parse(raw.volume),
+      };
+    });
+}
+
+export function parseOrderHistory(input: unknown): OrderRecord[] {
+  return z
+    .array(z.unknown())
+    .parse(input)
+    .flatMap((x) => {
+      const raw = RawOrderHistory.parse(x);
+      const status = OrderStatus.safeParse(raw.status);
+      if (!status.success) return [];
+      const kind = raw.triggerPrice != null ? "trigger" : raw.price != null ? "limit" : "market";
+      const level = raw.triggerPrice ?? raw.price ?? null;
+      return {
+        id: raw.id,
+        symbol: MarketSymbol.parse(raw.symbol),
+        side: sideOf(raw.side),
+        kind,
+        price: level === null ? null : Price.parse(level),
+        quantity: Qty.parse(raw.quantity ?? raw.executedQuantity),
+        executedQuantity: Qty.parse(raw.executedQuantity),
+        status: status.data,
+        createdAt: Millis.parse(raw.createdAt),
       };
     });
 }

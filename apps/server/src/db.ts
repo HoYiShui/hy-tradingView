@@ -11,6 +11,8 @@ import {
   MarketSymbol,
   Millis,
   Price,
+  OrderRecord,
+  OrderStatus,
   Qty,
   Usd,
   type CandleInterval,
@@ -40,6 +42,11 @@ CREATE TABLE IF NOT EXISTS funding (
 CREATE TABLE IF NOT EXISTS equity_snapshots (
   ts INTEGER PRIMARY KEY, equity REAL NOT NULL, open_pnl REAL NOT NULL, notional REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS orders (
+  id TEXT PRIMARY KEY, symbol TEXT NOT NULL, side TEXT NOT NULL, kind TEXT NOT NULL, price REAL,
+  quantity REAL NOT NULL, executed REAL NOT NULL, status TEXT NOT NULL, created_ms INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS orders_created ON orders (created_ms);
 CREATE TABLE IF NOT EXISTS positions (
   id TEXT PRIMARY KEY, symbol TEXT NOT NULL, opened_ms INTEGER NOT NULL, closed_ms INTEGER,
   realized REAL NOT NULL, fees REAL NOT NULL, funding REAL NOT NULL
@@ -100,6 +107,7 @@ export function openStore(path: string) {
   );
   const upsertFill = db.prepare(`INSERT OR REPLACE INTO fills VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const upsertFunding = db.prepare(`INSERT OR REPLACE INTO funding VALUES (?, ?, ?, ?)`);
+  const upsertOrder = db.prepare(`INSERT OR REPLACE INTO orders VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const upsertPosition = db.prepare(`INSERT OR REPLACE INTO positions VALUES (?, ?, ?, ?, ?, ?, ?)`);
 
   function inTransaction(work: () => void): void {
@@ -217,6 +225,53 @@ export function openStore(path: string) {
     latestFundingAt(): Millis | null {
       const row = db.prepare(`SELECT MAX(at_ms) AS m FROM funding`).get() as Row | undefined;
       return row?.m == null ? null : Millis.parse(row.m);
+    },
+    saveOrders(orders: readonly OrderRecord[]): void {
+      inTransaction(() => {
+        for (const o of orders)
+          upsertOrder.run(o.id, o.symbol, o.side, o.kind, o.price, o.quantity, o.executedQuantity, o.status, o.createdAt);
+      });
+    },
+    orders(): OrderRecord[] {
+      const rows = db.prepare(`SELECT * FROM orders ORDER BY created_ms, id`).all() as Row[];
+      return rows.map((r) => ({
+        id: String(r.id),
+        symbol: MarketSymbol.parse(r.symbol),
+        side: r.side === "buy" ? "buy" : "sell",
+        kind: r.kind === "limit" ? "limit" : r.kind === "trigger" ? "trigger" : "market",
+        price: r.price === null ? null : Price.parse(r.price),
+        quantity: Qty.parse(r.quantity),
+        executedQuantity: Qty.parse(r.executed),
+        status: OrderStatus.parse(r.status),
+        createdAt: Millis.parse(r.created_ms),
+      }));
+    },
+    knownOrderStatus(ids: readonly string[]): Map<string, string> {
+      const known = new Map<string, string>();
+      const stmt = db.prepare(`SELECT status FROM orders WHERE id = ?`);
+      for (const id of ids) {
+        const row = stmt.get(id) as Row | undefined;
+        if (row !== undefined) known.set(id, String(row.status));
+      }
+      return known;
+    },
+    fillRange(): { first: Millis; last: Millis } | null {
+      const row = db.prepare(`SELECT MIN(at_ms) a, MAX(at_ms) b FROM fills`).get() as Row | undefined;
+      return row?.a == null || row?.b == null ? null : { first: Millis.parse(row.a), last: Millis.parse(row.b) };
+    },
+    allFills(): Fill[] {
+      return (db.prepare(`SELECT * FROM fills ORDER BY at_ms, id`).all() as Row[]).map(fillOf);
+    },
+    allFunding(): { symbol: MarketSymbol; at: Millis; amount: Usd }[] {
+      return (db.prepare(`SELECT symbol, at_ms, amount FROM funding ORDER BY at_ms`).all() as Row[]).map((r) => ({
+        symbol: MarketSymbol.parse(r.symbol),
+        at: Millis.parse(r.at_ms),
+        amount: Usd.parse(r.amount),
+      }));
+    },
+    lastFillByOrder(): Map<string, number> {
+      const rows = db.prepare(`SELECT order_id, MAX(at_ms) m FROM fills GROUP BY order_id`).all() as Row[];
+      return new Map(rows.map((r) => [String(r.order_id), Number(r.m)]));
     },
     savePositions(records: readonly PositionRecord[]): void {
       inTransaction(() => {
