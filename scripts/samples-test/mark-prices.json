@@ -1,0 +1,9 @@
+[
+  {
+    "fundingRate": "0.0000125",
+    "indexPrice": "75830.11884178",
+    "markPrice": "75815.7",
+    "nextFundingTimestamp": 1794128400000,
+    "symbol": "BTC_USDC_PERP"
+  }
+]

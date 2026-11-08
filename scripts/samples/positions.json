@@ -1,0 +1,32 @@
+[
+  {
+    "breakEvenPrice": "75053.851951951951951951951952",
+    "cumulativeFundingPayment": "-0.129377",
+    "cumulativeInterest": "0",
+    "entryPrice": "75000",
+    "estLiquidationPrice": "0",
+    "imf": "0.01333333",
+    "imfFunction": {
+      "base": "0.01333333",
+      "factor": "0.00002494",
+      "type": "sqrt"
+    },
+    "markPrice": "75850",
+    "mmf": "0.00666667",
+    "mmfFunction": {
+      "base": "0.00666667",
+      "factor": "0.00001496",
+      "type": "sqrt"
+    },
+    "netCost": "249.75",
+    "netExposureNotional": "252.5805",
+    "netExposureQuantity": "0.00333",
+    "netQuantity": "0.00333",
+    "pnlRealized": "2.809854",
+    "pnlUnrealized": "0.020646",
+    "positionId": "76435852020",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  }
+]

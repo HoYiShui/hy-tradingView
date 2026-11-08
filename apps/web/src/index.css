@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-crit: var(--crit);
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+:root {
+  color-scheme: dark;
+  --background: #0d0d0d;
+  --foreground: #ffffff;
+  --card: #1a1a19;
+  --card-foreground: #ffffff;
+  --popover: #232321;
+  --popover-foreground: #ffffff;
+  --primary: #3987e5;
+  --secondary-foreground: #c3c2b7;
+  --muted-foreground: #898781;
+  --border: #2c2c2a;
+  --ring: #3987e5;
+  --up: #199e70;
+  --down: #d95926;
+  --gain: #3fcf9b;
+  --loss: #ff8a6b;
+  --good: #0ca30c;
+  --warn: #fab219;
+  --crit: #d03b3b;
+}
+
+@layer base {
+  html, body {
+    background: var(--background);
+    color: var(--secondary-foreground);
+    font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  button { font: inherit; }
+}
+
+@utility num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes value-flash {
+  from { background-color: rgb(57 135 229 / 0.35); }
+  to { background-color: transparent; }
+}
+
+@utility flash {
+  animation: value-flash 0.9s ease-out;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
