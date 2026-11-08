@@ -8,7 +8,8 @@
     "build": "pnpm -r build",
     "typecheck": "tsc -p . && pnpm -r typecheck",
     "test": "vitest run",
-    "probe": "tsx scripts/probe-backpack.ts"
+    "probe": "tsx scripts/probe-backpack.ts",
+    "verify:live": "tsx scripts/verify-live.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
