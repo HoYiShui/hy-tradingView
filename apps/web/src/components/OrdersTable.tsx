@@ -1,5 +1,5 @@
 import type { OpenOrder } from "@hy/types";
-import { price, qty, shortSymbol, utcTime } from "../lib/format";
+import { price, qty, shortSymbol, triggerSizeLabel, utcTime } from "../lib/format";
 import { snapshotOf } from "../lib/status";
 import { cn } from "../lib/utils";
 import { useFeedStore } from "../store/feedStore";
@@ -46,7 +46,7 @@ function OrderRow({ o }: { o: OpenOrder }) {
             <span className="text-muted-foreground">at </span>{price(o.triggerPrice)}
             <span className="text-muted-foreground"> → {o.execution}</span>
           </TableCell>
-          <TableCell className={NUM}>{o.quantity === "all" ? "all" : qty(o.quantity)}</TableCell>
+          <TableCell className={NUM}>{triggerSizeLabel(o.size)}</TableCell>
           {tail}
         </TableRow>
       );

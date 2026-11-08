@@ -6,8 +6,10 @@ import {
   Millis,
   OpenOrder,
   Position,
+  Percent,
   Price,
   Qty,
+  type TriggerSize,
   Usd,
 } from "@hy/types";
 import {
@@ -78,7 +80,7 @@ export function parseOpenOrder(input: unknown): OpenOrder {
       kind: "trigger",
       triggerPrice: Price.parse(raw.triggerPrice),
       execution: raw.orderType === "Market" ? "market" : "limit",
-      quantity: triggerQuantity(raw),
+      size: triggerSize(raw),
     };
   }
   if (raw.price == null || raw.quantity == null) {
@@ -94,10 +96,21 @@ export function parseOpenOrder(input: unknown): OpenOrder {
   };
 }
 
-function triggerQuantity(raw: z.infer<typeof RawOpenOrder>): Qty | "all" {
-  if (raw.triggerQuantity === "100%") return "all";
-  if (raw.quantity != null && raw.quantity > 0) return Qty.parse(raw.quantity);
-  throw new Error(`trigger order ${raw.id} has unsupported quantity ${raw.triggerQuantity ?? "null"}`);
+const PERCENT = /^(\d+(?:\.\d+)?)%$/;
+
+function triggerSize(raw: z.infer<typeof RawOpenOrder>): TriggerSize {
+  const spec = raw.triggerQuantity;
+  if (spec != null) {
+    const pct = PERCENT.exec(spec);
+    if (pct) {
+      const value = Number(pct[1]);
+      return value === 100 ? { kind: "all" } : { kind: "percent", percent: Percent.parse(value) };
+    }
+    const n = Number(spec);
+    if (spec.trim() !== "" && Number.isFinite(n) && n > 0) return { kind: "quantity", quantity: Qty.parse(n) };
+  }
+  if (raw.quantity != null && raw.quantity > 0) return { kind: "quantity", quantity: Qty.parse(raw.quantity) };
+  throw new Error(`trigger order ${raw.id} has unsupported quantity ${spec ?? "null"}`);
 }
 
 export function parseOpenOrders(input: unknown): OpenOrder[] {

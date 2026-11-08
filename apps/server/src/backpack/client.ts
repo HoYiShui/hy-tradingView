@@ -31,7 +31,11 @@ export function createBackpackClient(config: { baseUrl: string; apiKey: string; 
   async function get(path: string, params: QueryParams, headers: Record<string, string>): Promise<unknown> {
     const url = new URL(path, config.baseUrl);
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
-    const res = await fetchWithRetry(url, headers);
+    let res = await fetchWithRetry(url, headers);
+    for (let wait = 1000; res.status === 429 && wait <= 4000; wait *= 2) {
+      await new Promise((r) => setTimeout(r, wait));
+      res = await fetchWithRetry(url, headers);
+    }
     const text = await res.text();
     if (!res.ok) throw new BackpackHttpError(res.status, path, text);
     return JSON.parse(text);

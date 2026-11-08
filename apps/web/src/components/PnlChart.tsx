@@ -8,10 +8,10 @@ import { shapePnl } from "../lib/pnl";
 import { COLOR } from "../lib/theme";
 import { BASE_CHART_OPTIONS } from "./chartTheme";
 import { SIGN_TEXT, cn } from "../lib/utils";
-import { Empty, Panel } from "./Panel";
+import { Empty } from "./Panel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 
-export function PnlChart({ days, loaded, error, className }: { days: readonly DailyPnl[]; loaded: boolean; error: string | null; className?: string }) {
+export function PnlChart({ days, loaded, error }: { days: readonly DailyPnl[]; loaded: boolean; error: string | null }) {
   const host = useRef<HTMLDivElement>(null);
   const bars = useRef<ISeriesApi<"Histogram"> | null>(null);
   const line = useRef<ISeriesApi<"Line"> | null>(null);
@@ -48,7 +48,7 @@ export function PnlChart({ days, loaded, error, className }: { days: readonly Da
   const focus = (hoverDay === null ? days.at(-1) : shaped.byDay.get(hoverDay)) ?? null;
 
   return (
-    <Panel title="Daily realized PnL" className={className} aside={<span className="text-xs text-muted-foreground">trading + funding, UTC days</span>}>
+    <>
       {empty ? (
         <Empty>{error !== null ? `Could not load PnL (${error})` : loaded ? "No closed PnL yet. Bars appear after the first realized day." : "Loading PnL"}</Empty>
       ) : (
@@ -90,6 +90,6 @@ export function PnlChart({ days, loaded, error, className }: { days: readonly Da
           </Table>
         </div>
       )}
-    </Panel>
+    </>
   );
 }

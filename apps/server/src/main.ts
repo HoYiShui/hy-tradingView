@@ -1,19 +1,17 @@
 import { existsSync } from "node:fs";
 import { relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { CHART_SYMBOL } from "@hy/types";
 import { createApp } from "./app.js";
 import { createBackpackReader } from "./backpack/adapter.js";
 import { createBackpackClient } from "./backpack/client.js";
 import { loadConfig } from "./config.js";
-import { openStore } from "./db.js";
+import { loadRootEnv, repoRoot } from "./env.js";
+import { equityBucket, openStore } from "./db.js";
 import { createFeed } from "./feed.js";
 import { createCandleService, syncFills, syncSlowHistory } from "./history.js";
 
-const repoRoot = resolve(fileURLToPath(import.meta.url), "../../../..");
-const envFile = resolve(repoRoot, ".env");
-if (existsSync(envFile)) process.loadEnvFile(envFile);
+loadRootEnv();
 
 let config;
 try {
@@ -51,6 +49,19 @@ function every(ms: number, name: string, work: () => Promise<void>): void {
 
 every(5_000, "fill sync", () => syncFills(reader, store));
 every(60_000, "history sync", () => syncSlowHistory(reader, store));
+let lastEquityBucket = -1;
+feed.subscribe((f) => {
+  if (f.kind !== "live") return;
+  const bucket = equityBucket(f.snapshot.asOf);
+  if (bucket === lastEquityBucket) return;
+  lastEquityBucket = bucket;
+  store.saveEquity({
+    ts: f.snapshot.asOf,
+    equity: f.snapshot.account.equity,
+    openPnl: f.snapshot.metrics.openPnl,
+    notional: f.snapshot.metrics.grossNotional,
+  });
+});
 feed.start();
 
 const webDist = resolve(repoRoot, "apps/web/dist");

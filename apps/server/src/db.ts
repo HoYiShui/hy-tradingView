@@ -5,6 +5,8 @@ import {
   Candle,
   Day,
   DailyPnl,
+  EquityPoint,
+  EquityRange,
   Fill,
   MarketSymbol,
   Millis,
@@ -30,6 +32,9 @@ CREATE TABLE IF NOT EXISTS funding (
   symbol TEXT NOT NULL, at_ms INTEGER NOT NULL, amount REAL NOT NULL, rate REAL NOT NULL,
   PRIMARY KEY (symbol, at_ms)
 ) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS equity_snapshots (
+  ts INTEGER PRIMARY KEY, equity REAL NOT NULL, open_pnl REAL NOT NULL, notional REAL NOT NULL
+);
 CREATE TABLE IF NOT EXISTS positions (
   id TEXT PRIMARY KEY, symbol TEXT NOT NULL, opened_ms INTEGER NOT NULL, closed_ms INTEGER,
   realized REAL NOT NULL, fees REAL NOT NULL, funding REAL NOT NULL
@@ -49,6 +54,29 @@ SELECT day, trading, funding, trading + funding AS total,
        SUM(trading + funding) OVER (ORDER BY day) AS cumulative
 FROM daily ORDER BY day
 `;
+
+const EQUITY_SQL = `
+SELECT ts, equity, open_pnl, notional FROM equity_snapshots
+WHERE ts IN (SELECT MAX(ts) FROM equity_snapshots WHERE ts >= ?1 GROUP BY ts / CAST(?2 AS INTEGER))
+ORDER BY ts
+`;
+
+export const EQUITY_BUCKET_MS = 5 * 60_000;
+export const EQUITY_MAX_POINTS = 600;
+const RANGE_MS: Record<Exclude<EquityRange, "all">, number> = {
+  "1d": 86_400_000,
+  "7d": 7 * 86_400_000,
+  "30d": 30 * 86_400_000,
+};
+
+export function equityBucket(ts: number): number {
+  return Math.floor(ts / EQUITY_BUCKET_MS) * EQUITY_BUCKET_MS;
+}
+
+export function downsampleStep(spanMs: number): number {
+  const raw = Math.ceil(spanMs / EQUITY_MAX_POINTS);
+  return Math.max(EQUITY_BUCKET_MS, Math.ceil(raw / EQUITY_BUCKET_MS) * EQUITY_BUCKET_MS);
+}
 
 type Row = Record<string, string | number | null>;
 
@@ -164,6 +192,26 @@ export function openStore(path: string) {
         funding: Usd.parse(r.funding),
         total: Usd.parse(r.total),
         cumulative: Usd.parse(r.cumulative),
+      }));
+    },
+    saveEquity(point: EquityPoint): void {
+      db.prepare(`INSERT OR REPLACE INTO equity_snapshots VALUES (?, ?, ?, ?)`).run(
+        equityBucket(point.ts),
+        point.equity,
+        point.openPnl,
+        point.notional,
+      );
+    },
+    equity(range: EquityRange, now: number): EquityPoint[] {
+      const since = range === "all" ? 0 : now - RANGE_MS[range];
+      const first = db.prepare(`SELECT MIN(ts) AS m FROM equity_snapshots WHERE ts >= ?`).get(since) as Row | undefined;
+      const span = first?.m == null ? 0 : now - Number(first.m);
+      const rows = db.prepare(EQUITY_SQL).all(since, downsampleStep(span)) as Row[];
+      return rows.map((r) => ({
+        ts: Millis.parse(r.ts),
+        equity: Usd.parse(r.equity),
+        openPnl: Usd.parse(r.open_pnl),
+        notional: Usd.parse(r.notional),
       }));
     },
     close(): void {

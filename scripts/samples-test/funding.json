@@ -1,0 +1,802 @@
+[
+  {
+    "fundingRate": "0.0000054",
+    "intervalEndTimestamp": "2026-05-17T15:00:00",
+    "quantity": "0.005449",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000053",
+    "intervalEndTimestamp": "2026-05-17T15:00:00",
+    "quantity": "0.005376",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000001",
+    "intervalEndTimestamp": "2026-05-17T15:00:00",
+    "quantity": "-0.000195",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.000001",
+    "intervalEndTimestamp": "2026-05-17T14:00:00",
+    "quantity": "0.000524",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000052",
+    "intervalEndTimestamp": "2026-05-17T14:00:00",
+    "quantity": "-0.005276",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000039",
+    "intervalEndTimestamp": "2026-05-17T13:00:00",
+    "quantity": "0.005853",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000003",
+    "intervalEndTimestamp": "2026-05-17T12:00:00",
+    "quantity": "-0.000301",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000024",
+    "intervalEndTimestamp": "2026-05-17T12:00:00",
+    "quantity": "0.001165",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000016",
+    "intervalEndTimestamp": "2026-05-17T12:00:00",
+    "quantity": "-0.002509",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000042",
+    "intervalEndTimestamp": "2026-05-17T11:00:00",
+    "quantity": "0.004248",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000086",
+    "intervalEndTimestamp": "2026-05-17T11:00:00",
+    "quantity": "0.004203",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000023",
+    "intervalEndTimestamp": "2026-05-17T11:00:00",
+    "quantity": "0.00348",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000095",
+    "intervalEndTimestamp": "2026-05-17T10:00:00",
+    "quantity": "0.014267",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000066",
+    "intervalEndTimestamp": "2026-05-17T10:00:00",
+    "quantity": "0.003209",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000019",
+    "intervalEndTimestamp": "2026-05-17T10:00:00",
+    "quantity": "-0.002827",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000121",
+    "intervalEndTimestamp": "2026-05-17T09:00:00",
+    "quantity": "0.018058",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000068",
+    "intervalEndTimestamp": "2026-05-17T09:00:00",
+    "quantity": "0.006757",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000034",
+    "intervalEndTimestamp": "2026-05-17T09:00:00",
+    "quantity": "-0.005087",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000069",
+    "intervalEndTimestamp": "2026-05-17T08:00:00",
+    "quantity": "0.01035",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000016",
+    "intervalEndTimestamp": "2026-05-17T08:00:00",
+    "quantity": "0.000799",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000027",
+    "intervalEndTimestamp": "2026-05-17T08:00:00",
+    "quantity": "-0.00414",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000086",
+    "intervalEndTimestamp": "2026-05-17T07:00:00",
+    "quantity": "0.01285",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000008",
+    "intervalEndTimestamp": "2026-05-17T07:00:00",
+    "quantity": "-0.000415",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.000002",
+    "intervalEndTimestamp": "2026-05-17T07:00:00",
+    "quantity": "-0.003101",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000074",
+    "intervalEndTimestamp": "2026-05-17T06:00:00",
+    "quantity": "0.011156",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.000003",
+    "intervalEndTimestamp": "2026-05-17T06:00:00",
+    "quantity": "0.001449",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000028",
+    "intervalEndTimestamp": "2026-05-17T06:00:00",
+    "quantity": "-0.002748",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.00001",
+    "intervalEndTimestamp": "2026-05-17T05:00:00",
+    "quantity": "0.015007",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000083",
+    "intervalEndTimestamp": "2026-05-17T05:00:00",
+    "quantity": "0.004035",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000028",
+    "intervalEndTimestamp": "2026-05-17T05:00:00",
+    "quantity": "0.002808",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-17T04:00:00",
+    "quantity": "0.018578",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-17T04:00:00",
+    "quantity": "0.012266",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000004",
+    "intervalEndTimestamp": "2026-05-17T04:00:00",
+    "quantity": "-0.000444",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-17T03:00:00",
+    "quantity": "0.024793",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000066",
+    "intervalEndTimestamp": "2026-05-17T03:00:00",
+    "quantity": "0.009816",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000038",
+    "intervalEndTimestamp": "2026-05-17T03:00:00",
+    "quantity": "-0.003712",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000131",
+    "intervalEndTimestamp": "2026-05-17T03:00:00",
+    "quantity": "-0.001317",
+    "subaccountId": 0,
+    "symbol": "HYPE_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-17T02:00:00",
+    "quantity": "0.01851",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000004",
+    "intervalEndTimestamp": "2026-05-17T02:00:00",
+    "quantity": "0.000432",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000018",
+    "intervalEndTimestamp": "2026-05-17T02:00:00",
+    "quantity": "0.00178",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-17T02:00:00",
+    "quantity": "-0.000562",
+    "subaccountId": 0,
+    "symbol": "ZEC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-17T01:00:00",
+    "quantity": "0.018562",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000027",
+    "intervalEndTimestamp": "2026-05-17T01:00:00",
+    "quantity": "0.002663",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000014",
+    "intervalEndTimestamp": "2026-05-17T01:00:00",
+    "quantity": "0.001401",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000246",
+    "intervalEndTimestamp": "2026-05-17T01:00:00",
+    "quantity": "-0.001131",
+    "subaccountId": 0,
+    "symbol": "ZEC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-17T00:00:00",
+    "quantity": "0.018608",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000024",
+    "intervalEndTimestamp": "2026-05-17T00:00:00",
+    "quantity": "-0.003593",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000031",
+    "intervalEndTimestamp": "2026-05-17T00:00:00",
+    "quantity": "-0.003067",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000253",
+    "intervalEndTimestamp": "2026-05-17T00:00:00",
+    "quantity": "-0.001168",
+    "subaccountId": 0,
+    "symbol": "ZEC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-16T23:00:00",
+    "quantity": "0.018617",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000029",
+    "intervalEndTimestamp": "2026-05-16T23:00:00",
+    "quantity": "-0.004415",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000049",
+    "intervalEndTimestamp": "2026-05-16T23:00:00",
+    "quantity": "-0.004862",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000261",
+    "intervalEndTimestamp": "2026-05-16T23:00:00",
+    "quantity": "-0.001203",
+    "subaccountId": 0,
+    "symbol": "ZEC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-16T22:00:00",
+    "quantity": "0.018633",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000035",
+    "intervalEndTimestamp": "2026-05-16T22:00:00",
+    "quantity": "-0.003492",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000057",
+    "intervalEndTimestamp": "2026-05-16T22:00:00",
+    "quantity": "-0.00566",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000303",
+    "intervalEndTimestamp": "2026-05-16T22:00:00",
+    "quantity": "-0.001395",
+    "subaccountId": 0,
+    "symbol": "ZEC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-16T21:00:00",
+    "quantity": "0.018632",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000017",
+    "intervalEndTimestamp": "2026-05-16T21:00:00",
+    "quantity": "-0.001685",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000038",
+    "intervalEndTimestamp": "2026-05-16T21:00:00",
+    "quantity": "-0.00372",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000537",
+    "intervalEndTimestamp": "2026-05-16T21:00:00",
+    "quantity": "-0.002483",
+    "subaccountId": 0,
+    "symbol": "ZEC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-16T20:00:00",
+    "quantity": "0.01864",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000008",
+    "intervalEndTimestamp": "2026-05-16T20:00:00",
+    "quantity": "0.000858",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000071",
+    "intervalEndTimestamp": "2026-05-16T20:00:00",
+    "quantity": "-0.006988",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.000057",
+    "intervalEndTimestamp": "2026-05-16T20:00:00",
+    "quantity": "-0.00264",
+    "subaccountId": 0,
+    "symbol": "ZEC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-16T19:00:00",
+    "quantity": "0.018633",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000016",
+    "intervalEndTimestamp": "2026-05-16T19:00:00",
+    "quantity": "0.001583",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.000014",
+    "intervalEndTimestamp": "2026-05-16T19:00:00",
+    "quantity": "-0.013769",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000554",
+    "intervalEndTimestamp": "2026-05-16T19:00:00",
+    "quantity": "-0.002542",
+    "subaccountId": 0,
+    "symbol": "ZEC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-16T18:00:00",
+    "quantity": "0.018622",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000084",
+    "intervalEndTimestamp": "2026-05-16T18:00:00",
+    "quantity": "0.004041",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000073",
+    "intervalEndTimestamp": "2026-05-16T18:00:00",
+    "quantity": "-0.00724",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000553",
+    "intervalEndTimestamp": "2026-05-16T18:00:00",
+    "quantity": "-0.002549",
+    "subaccountId": 0,
+    "symbol": "ZEC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-16T17:00:00",
+    "quantity": "0.01862",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-16T17:00:00",
+    "quantity": "0.005998",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000149",
+    "intervalEndTimestamp": "2026-05-16T17:00:00",
+    "quantity": "-0.01466",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000573",
+    "intervalEndTimestamp": "2026-05-16T17:00:00",
+    "quantity": "-0.002601",
+    "subaccountId": 0,
+    "symbol": "ZEC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-16T16:00:00",
+    "quantity": "0.012391",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-16T16:00:00",
+    "quantity": "0.006013",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.000011",
+    "intervalEndTimestamp": "2026-05-16T16:00:00",
+    "quantity": "-0.010749",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000421",
+    "intervalEndTimestamp": "2026-05-16T16:00:00",
+    "quantity": "-0.0019",
+    "subaccountId": 0,
+    "symbol": "ZEC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000111",
+    "intervalEndTimestamp": "2026-05-16T15:00:00",
+    "quantity": "0.011065",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-16T15:00:00",
+    "quantity": "0.006012",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000147",
+    "intervalEndTimestamp": "2026-05-16T15:00:00",
+    "quantity": "-0.01438",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000422",
+    "intervalEndTimestamp": "2026-05-16T15:00:00",
+    "quantity": "-0.001906",
+    "subaccountId": 0,
+    "symbol": "ZEC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000079",
+    "intervalEndTimestamp": "2026-05-16T14:00:00",
+    "quantity": "0.011759",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-16T14:00:00",
+    "quantity": "0.012259",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000113",
+    "intervalEndTimestamp": "2026-05-16T14:00:00",
+    "quantity": "-0.016683",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.000007",
+    "intervalEndTimestamp": "2026-05-16T13:00:00",
+    "quantity": "0.01054",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000013",
+    "intervalEndTimestamp": "2026-05-16T13:00:00",
+    "quantity": "0.001367",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000091",
+    "intervalEndTimestamp": "2026-05-16T13:00:00",
+    "quantity": "-0.008927",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000101",
+    "intervalEndTimestamp": "2026-05-16T12:00:00",
+    "quantity": "0.015082",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000019",
+    "intervalEndTimestamp": "2026-05-16T12:00:00",
+    "quantity": "0.001909",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000085",
+    "intervalEndTimestamp": "2026-05-16T12:00:00",
+    "quantity": "-0.012539",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-05-16T11:00:00",
+    "quantity": "0.012353",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000038",
+    "intervalEndTimestamp": "2026-05-16T11:00:00",
+    "quantity": "0.001861",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000063",
+    "intervalEndTimestamp": "2026-05-16T11:00:00",
+    "quantity": "-0.00614",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000106",
+    "intervalEndTimestamp": "2026-05-16T10:00:00",
+    "quantity": "0.0105",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000011",
+    "intervalEndTimestamp": "2026-05-16T10:00:00",
+    "quantity": "0.000567",
+    "subaccountId": 0,
+    "symbol": "ETH_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "-0.0000045",
+    "intervalEndTimestamp": "2026-05-16T10:00:00",
+    "quantity": "-0.004434",
+    "subaccountId": 0,
+    "symbol": "SOL_USDC_PERP",
+    "userId": 0
+  }
+]

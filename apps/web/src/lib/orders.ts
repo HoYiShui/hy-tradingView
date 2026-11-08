@@ -1,5 +1,5 @@
 import type { OpenOrder, Position } from "@hy/types";
-import { price, qty } from "./format";
+import { price, qty, triggerSizeLabel } from "./format";
 import { COLOR } from "./theme";
 
 export interface PriceLineSpec {
@@ -28,7 +28,7 @@ function orderLine(o: OpenOrder): PriceLineSpec {
         price: o.triggerPrice,
         color,
         style: "dotted",
-        title: `${side} trigger ${o.execution} ${o.quantity === "all" ? "all" : qty(o.quantity)}`,
+        title: `${side} trigger ${o.execution} ${triggerSizeLabel(o.size)}`,
       };
     default: {
       const _exhaustive: never = o;

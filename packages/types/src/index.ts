@@ -6,6 +6,8 @@ export const Price = z.number().finite().brand<"Price">();
 export type Price = z.infer<typeof Price>;
 export const Qty = z.number().finite().brand<"Qty">();
 export type Qty = z.infer<typeof Qty>;
+export const Percent = z.number().gt(0).lt(100).brand<"Percent">();
+export type Percent = z.infer<typeof Percent>;
 export const Millis = z.number().int().brand<"Millis">();
 export type Millis = z.infer<typeof Millis>;
 export const MarketSymbol = z.string().min(1).brand<"MarketSymbol">();
@@ -60,6 +62,13 @@ export const Position = z.object({
 });
 export type Position = z.infer<typeof Position>;
 
+export const TriggerSize = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("all") }),
+  z.object({ kind: z.literal("percent"), percent: Percent }),
+  z.object({ kind: z.literal("quantity"), quantity: Qty }),
+]);
+export type TriggerSize = z.infer<typeof TriggerSize>;
+
 const OrderBase = {
   id: z.string(),
   symbol: MarketSymbol,
@@ -82,7 +91,7 @@ export const OpenOrder = z.discriminatedUnion("kind", [
     kind: z.literal("trigger"),
     triggerPrice: Price,
     execution: z.enum(["market", "limit"]),
-    quantity: z.union([Qty, z.literal("all")]),
+    size: TriggerSize,
   }),
 ]);
 export type OpenOrder = z.infer<typeof OpenOrder>;
@@ -134,6 +143,18 @@ export const DailyPnl = z.object({
 });
 export type DailyPnl = z.infer<typeof DailyPnl>;
 
+export const EQUITY_RANGES = ["1d", "7d", "30d", "all"] as const;
+export const EquityRange = z.enum(EQUITY_RANGES);
+export type EquityRange = z.infer<typeof EquityRange>;
+
+export const EquityPoint = z.object({
+  ts: Millis,
+  equity: Usd,
+  openPnl: Usd,
+  notional: Usd,
+});
+export type EquityPoint = z.infer<typeof EquityPoint>;
+
 export const CHART_SYMBOL = MarketSymbol.parse("BTC_USDC_PERP");
 
 export const API = {
@@ -142,4 +163,5 @@ export const API = {
   candles: "/api/candles",
   fills: "/api/fills",
   dailyPnl: "/api/pnl/daily",
+  equity: "/api/equity",
 } as const;

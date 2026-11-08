@@ -3,7 +3,7 @@ import { streamSSE } from "hono/streaming";
 import { getConnInfo } from "@hono/node-server/conninfo";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { z } from "zod";
-import { API, CandleInterval, Millis, type Feed } from "@hy/types";
+import { API, CandleInterval, EquityRange, Millis, type Feed } from "@hy/types";
 import type { Store } from "./db.js";
 import type { createCandleService } from "./history.js";
 import type { createFeed } from "./feed.js";
@@ -15,6 +15,7 @@ const CandleQuery = z.object({
   interval: CandleInterval,
   since: z.coerce.number().int().nonnegative().optional(),
 });
+const EquityQuery = z.object({ range: EquityRange.default("7d") });
 const FillQuery = z.object({ limit: z.coerce.number().int().min(1).max(1000).default(200) });
 
 export function createApp(deps: {
@@ -59,6 +60,12 @@ export function createApp(deps: {
     const q = FillQuery.safeParse(c.req.query());
     if (!q.success) return c.json({ error: "bad query" }, 400);
     return c.json(deps.store.fills(q.data.limit));
+  });
+
+  app.get(API.equity, (c) => {
+    const q = EquityQuery.safeParse(c.req.query());
+    if (!q.success) return c.json({ error: "bad query" }, 400);
+    return c.json(deps.store.equity(q.data.range, Date.now()));
   });
 
   app.get(API.dailyPnl, (c) => c.json(deps.store.dailyPnl()));

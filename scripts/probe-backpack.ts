@@ -1,9 +1,10 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { loadConfig } from "../apps/server/src/config.js";
+import { loadRootEnv } from "../apps/server/src/env.js";
 import { createBackpackClient } from "../apps/server/src/backpack/client.js";
 import type { ReadInstruction } from "../apps/server/src/backpack/sign.js";
 
-process.loadEnvFile(new URL("../.env", import.meta.url));
+const { account } = loadRootEnv();
 const config = loadConfig(process.env);
 const client = createBackpackClient({
   baseUrl: config.BACKPACK_API_URL,
@@ -11,7 +12,7 @@ const client = createBackpackClient({
   apiSecret: config.BACKPACK_API_SECRET,
 });
 
-const dir = new URL("./samples/", import.meta.url);
+const dir = new URL(account === "test" ? "./samples-test/" : "./samples/", import.meta.url);
 mkdirSync(dir, { recursive: true });
 
 const REDACTED_KEYS = new Set(["userId", "subaccountId"]);
@@ -29,11 +30,11 @@ const probes: Probe[] = [
   { name: "collateral", instruction: "collateralQuery", path: "/api/v1/capital/collateral" },
   { name: "positions", instruction: "positionQuery", path: "/api/v1/position" },
   { name: "open-orders", instruction: "orderQueryAll", path: "/api/v1/orders" },
-  { name: "order-history", instruction: "orderHistoryQueryAll", path: "/wapi/v1/history/orders", params: { limit: 5 } },
-  { name: "fills", instruction: "fillHistoryQueryAll", path: "/wapi/v1/history/fills", params: { limit: 5 } },
-  { name: "fills-perp", instruction: "fillHistoryQueryAll", path: "/wapi/v1/history/fills", params: { limit: 5, marketType: "PERP" } },
-  { name: "funding", instruction: "fundingHistoryQueryAll", path: "/wapi/v1/history/funding", params: { limit: 5 } },
-  { name: "position-history", instruction: "positionHistoryQueryAll", path: "/wapi/v1/history/position", params: { limit: 5 } },
+  { name: "order-history", instruction: "orderHistoryQueryAll", path: "/wapi/v1/history/orders", params: { limit: 100 } },
+  { name: "fills", instruction: "fillHistoryQueryAll", path: "/wapi/v1/history/fills", params: { limit: 100 } },
+  { name: "fills-perp", instruction: "fillHistoryQueryAll", path: "/wapi/v1/history/fills", params: { limit: 100, marketType: "PERP" } },
+  { name: "funding", instruction: "fundingHistoryQueryAll", path: "/wapi/v1/history/funding", params: { limit: 100 } },
+  { name: "position-history", instruction: "positionHistoryQueryAll", path: "/wapi/v1/history/position", params: { limit: 100 } },
   { name: "klines", path: "/api/v1/klines", params: { symbol: "BTC_USDC_PERP", interval: "1h", startTime: startSec } },
   { name: "mark-prices", path: "/api/v1/markPrices", params: { symbol: "BTC_USDC_PERP" } },
   { name: "ticker", path: "/api/v1/ticker", params: { symbol: "BTC_USDC_PERP" } },

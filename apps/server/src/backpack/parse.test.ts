@@ -61,14 +61,25 @@ describe("open orders", () => {
       side: "sell",
       triggerPrice: 73000,
       execution: "market",
-      quantity: "all",
+      size: { kind: "all" },
       reduceOnly: true,
     });
   });
 
-  it("rejects a trigger order with a partial percentage it cannot represent", () => {
+  it("reads percentage and absolute trigger sizes", () => {
     const stop = openOrders.at(-1);
-    expect(() => parseOpenOrders([{ ...stop, quantity: null, triggerQuantity: "50%" }])).toThrow(/unsupported quantity/);
+    const size = (triggerQuantity: string) => {
+      const [o] = parseOpenOrders([{ ...stop, triggerQuantity }]);
+      return o?.kind === "trigger" ? o.size : null;
+    };
+    expect(size("50%")).toEqual({ kind: "percent", percent: 50 });
+    expect(size("100%")).toEqual({ kind: "all" });
+    expect(size("0.2293")).toEqual({ kind: "quantity", quantity: 0.2293 });
+  });
+
+  it("rejects a trigger order whose size it cannot read", () => {
+    const stop = openOrders.at(-1);
+    expect(() => parseOpenOrders([{ ...stop, quantity: null, triggerQuantity: "lots" }])).toThrow(/unsupported quantity/);
   });
 });
 

@@ -31,7 +31,7 @@ export function limitOrder(over: Record<string, unknown> = {}): OpenOrder {
 export function triggerOrder(over: Record<string, unknown> = {}): OpenOrder {
   return OpenOrder.parse({
     id: "t1", symbol: BTC, side: "sell", createdAt: 0, reduceOnly: true, kind: "trigger",
-    triggerPrice: 80, execution: "market", quantity: "all", ...over,
+    triggerPrice: 80, execution: "market", size: { kind: "all" }, ...over,
   });
 }
 

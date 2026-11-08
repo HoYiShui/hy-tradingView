@@ -62,3 +62,18 @@ export function relativeAge(ms: number, now: number): string {
 export function shortSymbol(symbol: string): string {
   return symbol.replace(/_USDC_PERP$/, "-PERP");
 }
+
+export function triggerSizeLabel(size: import("@hy/types").TriggerSize): string {
+  switch (size.kind) {
+    case "all":
+      return "all";
+    case "percent":
+      return `${size.percent}%`;
+    case "quantity":
+      return qty(size.quantity);
+    default: {
+      const _exhaustive: never = size;
+      return _exhaustive;
+    }
+  }
+}

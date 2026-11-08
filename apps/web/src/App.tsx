@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { FillsTable } from "./components/FillsTable";
 import { Header } from "./components/Header";
 import { OrdersTable } from "./components/OrdersTable";
-import { PnlChart } from "./components/PnlChart";
+import { PerformancePanel } from "./components/PerformancePanel";
 import { PositionsTable } from "./components/PositionsTable";
 import { PriceChart } from "./components/PriceChart";
 import { StatTiles } from "./components/StatTiles";
@@ -30,7 +30,7 @@ export function App() {
           <div className="grid grid-cols-1 items-start gap-2 lg:grid-cols-12">
             <div className="contents lg:col-span-6 lg:flex lg:min-w-0 lg:flex-col lg:gap-2">
               <PriceChart fills={fills.data} className="order-1 lg:order-none" />
-              <PnlChart days={pnl.data} loaded={pnl.loaded} error={pnl.error} className="order-3 lg:order-none" />
+              <PerformancePanel days={pnl.data} loaded={pnl.loaded} error={pnl.error} className="order-3 lg:order-none" />
             </div>
             <div className="contents lg:col-span-6 lg:flex lg:min-w-0 lg:flex-col lg:gap-2">
               <PositionsTable className="order-2 lg:order-none" />

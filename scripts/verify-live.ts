@@ -1,12 +1,19 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { loadConfig } from "../apps/server/src/config.js";
+import { loadRootEnv } from "../apps/server/src/env.js";
 import { createBackpackClient } from "../apps/server/src/backpack/client.js";
 
-process.loadEnvFile(new URL("../.env", import.meta.url));
+const { account } = loadRootEnv();
 const config = loadConfig(process.env);
-const base = process.argv[2] ?? "http://localhost:8787";
-const secrets = [config.BACKPACK_API_KEY, config.BACKPACK_API_SECRET];
+const base = process.argv[2] ?? `http://localhost:${process.env["PORT"] ?? 8787}`;
+const secrets = [
+  config.BACKPACK_API_KEY,
+  config.BACKPACK_API_SECRET,
+  process.env["BACKPACK_TEST_API_KEY"],
+  process.env["BACKPACK_TEST_API_SECRET"],
+].filter((s): s is string => !!s);
+console.log(`account: ${account}`);
 const failures: string[] = [];
 const check = (ok: boolean, label: string) => {
   console.log(`${ok ? "pass" : "FAIL"} ${label}`);
@@ -76,7 +83,7 @@ const walk = (dir: string): string[] =>
   readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : [join(dir, f)]));
 const dist = walk(new URL("../apps/web/dist", import.meta.url).pathname).map((f) => readFileSync(f, "utf8"));
 for (const [i, s] of secrets.entries()) {
-  const name = i === 0 ? "API key" : "API secret";
+  const name = ["API key", "API secret", "test API key", "test API secret"][i];
   check(!served.some((t) => t.includes(s)), `${name} absent from ${served.length} served responses and headers`);
   check(!dist.some((t) => t.includes(s)), `${name} absent from ${dist.length} built bundle files`);
 }

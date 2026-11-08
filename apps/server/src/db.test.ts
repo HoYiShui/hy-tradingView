@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { MarketSymbol, Millis, Usd } from "@hy/types";
-import { openStore, type Store } from "./db.js";
+import { downsampleStep, EQUITY_BUCKET_MS, EQUITY_MAX_POINTS, equityBucket, openStore, type Store } from "./db.js";
 
 const symbol = MarketSymbol.parse("BTC_USDC_PERP");
 const at = (iso: string) => Millis.parse(Date.parse(iso));
@@ -98,5 +98,54 @@ describe("fills", () => {
     store.saveFills([fill("1", 1000), fill("2", 3000), fill("3", 2000)]);
     expect(store.fills(10).map((f) => f.id)).toEqual(["2", "3", "1"]);
     expect(store.latestFillAt()).toBe(3000);
+  });
+});
+
+describe("equity snapshots", () => {
+  const point = (ts: number, equity: number) => ({ ts: Millis.parse(ts), equity: Usd.parse(equity), openPnl: Usd.parse(0), notional: Usd.parse(0) });
+  const NOW = Date.parse("2026-06-10T12:00:00Z");
+
+  it("keeps one point per five minute bucket so a restart does not duplicate it", () => {
+    store = openStore(":memory:");
+    const t = Date.parse("2026-06-10T11:00:00Z");
+    store.saveEquity(point(t + 1000, 100));
+    store.saveEquity(point(t + 200_000, 101));
+    store.saveEquity(point(t + EQUITY_BUCKET_MS, 102));
+    const all = store.equity("all", NOW);
+    expect(all.map((p) => p.equity)).toEqual([101, 102]);
+    expect(all[0]?.ts).toBe(equityBucket(t));
+  });
+
+  it("returns a single point for a brand new database and nothing for an empty one", () => {
+    store = openStore(":memory:");
+    expect(store.equity("7d", NOW)).toEqual([]);
+    store.saveEquity(point(NOW - 1000, 50));
+    expect(store.equity("7d", NOW)).toHaveLength(1);
+  });
+
+  it("filters by range", () => {
+    store = openStore(":memory:");
+    store.saveEquity(point(NOW - 3 * 86_400_000, 1));
+    store.saveEquity(point(NOW - 3_600_000, 2));
+    expect(store.equity("1d", NOW).map((p) => p.equity)).toEqual([2]);
+    expect(store.equity("7d", NOW).map((p) => p.equity)).toEqual([1, 2]);
+  });
+
+  it("downsamples a long history to a bounded number of points keeping the last point of each bucket", () => {
+    store = openStore(":memory:");
+    const days = 20;
+    const n = (days * 86_400_000) / EQUITY_BUCKET_MS;
+    for (let i = 0; i < n; i++) store.saveEquity(point(NOW - (n - i) * EQUITY_BUCKET_MS, i));
+    const out = store.equity("all", NOW);
+    expect(out.length).toBeLessThanOrEqual(EQUITY_MAX_POINTS + 1);
+    expect(out.length).toBeGreaterThan(EQUITY_MAX_POINTS / 2);
+    expect(out.at(-1)?.equity).toBe(n - 1);
+    expect(out.map((p) => p.ts)).toEqual([...out.map((p) => p.ts)].sort((a, b) => a - b));
+  });
+
+  it("never uses a step finer than the recording bucket", () => {
+    store = openStore(":memory:");
+    expect(downsampleStep(0)).toBe(EQUITY_BUCKET_MS);
+    expect(downsampleStep(3_600_000)).toBe(EQUITY_BUCKET_MS);
   });
 });

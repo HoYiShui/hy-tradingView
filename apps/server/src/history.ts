@@ -3,6 +3,7 @@ import type { ExchangeReader } from "./exchange.js";
 import type { Store } from "./db.js";
 
 const PAGE = 200;
+const PAGE_PAUSE_MS = 500;
 
 async function pageAll<T>(fetchPage: (offset: number) => Promise<T[]>): Promise<T[]> {
   const all: T[] = [];
@@ -10,6 +11,7 @@ async function pageAll<T>(fetchPage: (offset: number) => Promise<T[]>): Promise<
     const page = await fetchPage(offset);
     all.push(...page);
     if (page.length < PAGE) return all;
+    await new Promise((r) => setTimeout(r, PAGE_PAUSE_MS));
   }
 }
 
