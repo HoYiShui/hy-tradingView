@@ -101,9 +101,10 @@ function Player({ model }: { model: ReplayModel }) {
         <span className="num text-xs text-muted-foreground">{((clock.t - model.start) / DAY_MS).toFixed(1)} / {((model.end - model.start) / DAY_MS).toFixed(0)} days</span>
       </section>
 
-      <section aria-label="Account at clock" className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+      <section aria-label="Account at clock" className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-9">
         <Tile label="Equity" value={usd(state.equity)} />
         <Tile label="Net PnL to date" value={`${SIGN_MARK[netSign]} ${signedUsd(net)}`} tone={cn(SIGN_TEXT[netSign])} sub="realized + funding - fees" />
+        <Tile label="Net deposited" value={signedUsd(state.totals.transfers)} sub="deposits - withdrawals" />
         <Tile label="Open PnL" value={`${SIGN_MARK[open]} ${signedUsd(state.metrics.openPnl)}`} tone={cn(SIGN_TEXT[open])} />
         <Tile label="Cross leverage" value={leverageX(state.metrics.leverage)} sub={`gross ${usd(state.metrics.grossNotional)}`} />
         <Tile label="Net notional" value={signedUsd(state.metrics.netNotional)} />
@@ -151,7 +152,10 @@ function ReplayPage({ account, accounts, onSelect }: { account: AccountInfo; acc
           </div>
         </header>
         <p className="mb-2 text-xs text-muted-foreground">
-          Equity is back-derived from today's equity minus later PnL, funding and fees. It assumes no deposits or withdrawals and no spot trading, and marks open positions to candle opens.
+          Equity is back-derived from today's equity minus later PnL, funding, fees and net deposits. It assumes no spot trading, and marks open positions to candle opens.
+          {load.kind === "ready" && load.model.excludedTransfers > 0 && (
+            <span data-testid="excluded-transfers"> {load.model.excludedTransfers} transfers of assets with no USD value are not in the curve.</span>
+          )}
           {limit !== null && <span data-testid="history-limit"> {limit}</span>}
         </p>
         {load.kind === "loading" && <div className="rounded border border-dashed border-border px-3 py-10 text-center text-muted-foreground">Loading history</div>}

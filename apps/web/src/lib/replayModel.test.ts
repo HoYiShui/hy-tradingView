@@ -53,3 +53,33 @@ describe("fractional clock", () => {
     expect(frameAt(model, START, 3 * H + 0.7).t).toBe(3 * H);
   });
 });
+
+describe("replay model with transfers", () => {
+  const withTransfers: ReplayPayload = {
+    ...payload,
+    anchor: { ...payload.anchor, equity: Usd.parse(1210) },
+    transfers: [[Millis.parse(H), Usd.parse(500)], [Millis.parse(7 * H), Usd.parse(-300)]],
+    excludedTransfers: 2,
+  };
+  const model = buildModel(withTransfers);
+
+  it("still lands the final frame on the anchor equity", () => {
+    expect(frameAt(model, START, model.end).state.equity).toBeCloseTo(1210);
+  });
+
+  it("a deposit raises equity by its amount and a withdrawal lowers it, with pnl untouched", () => {
+    const before = frameAt(model, START, 0.9 * H).state;
+    const after = frameAt(model, START, 1.1 * H).state;
+    expect(after.equity - before.equity).toBeCloseTo(500);
+    expect(after.totals.transfers).toBe(500);
+    const net = (s: typeof after) => s.totals.realized + s.totals.funding - s.totals.fees;
+    expect(net(after)).toBe(net(before));
+    expect(frameAt(model, START, model.end).state.totals.transfers).toBe(200);
+  });
+
+  it("counts transfers up to the clock and carries the excluded count", () => {
+    expect(frameAt(model, START, 3 * H).transferCount).toBe(1);
+    expect(frameAt(model, START, 8 * H).transferCount).toBe(2);
+    expect(model.excludedTransfers).toBe(2);
+  });
+});
