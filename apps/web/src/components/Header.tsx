@@ -1,8 +1,9 @@
+import type { ReactNode } from "react";
 import { CircleAlert, CircleCheck, CircleDashed, CircleX, type LucideIcon } from "lucide-react";
 import { relativeAge, utcTime } from "../lib/format";
 import { snapshotOf, statusOf, type StatusTone } from "../lib/status";
 import { cn } from "../lib/utils";
-import { useFeedStore } from "../store/feedStore";
+import { useAccount, useFeedState } from "../hooks/useAccount";
 import { Badge } from "./ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
@@ -13,17 +14,19 @@ const TONE: Record<StatusTone, { icon: LucideIcon; color: string }> = {
   pending: { icon: CircleDashed, color: "text-muted-foreground" },
 };
 
-export function Header({ now }: { now: number }) {
-  const feed = useFeedStore((s) => s.feed);
-  const transport = useFeedStore((s) => s.transport);
+export function Header({ now, switcher }: { now: number; switcher: ReactNode }) {
+  const account = useAccount();
+  const feed = useFeedState((s) => s.feed);
+  const transport = useFeedState((s) => s.transport);
   const status = statusOf(feed, transport);
   const snap = snapshotOf(feed);
   const { icon: Icon, color } = TONE[status.tone];
   return (
     <header className="mb-2 flex flex-wrap items-center justify-between gap-2">
       <h1 className="text-base font-semibold text-foreground">
-        Backpack <span className="font-normal text-muted-foreground">perp account</span>
+        {account.label} <span className="font-normal capitalize text-muted-foreground">{account.exchange} perp account</span>
       </h1>
+      {switcher}
       <div className="flex items-center gap-3 text-xs">
         <Badge role="status" className="rounded-full px-2.5 font-medium">
           <Icon className={cn("size-3.5", color)} aria-hidden="true" />

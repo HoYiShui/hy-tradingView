@@ -2,6 +2,8 @@ import type { AccountSnapshot, Candle, CandleInterval, Fill, MarketSymbol, Order
 import type { FundingPayment, PositionRecord } from "./backpack/parse.js";
 
 export interface ExchangeReader {
+  readonly exchange: string;
+  readonly chartSymbol: MarketSymbol;
   fetchLive(): Promise<AccountSnapshot>;
   fetchFills(input: { from: Millis | null; limit: number; offset: number }): Promise<Fill[]>;
   fetchFunding(input: { from: Millis | null; limit: number; offset: number }): Promise<FundingPayment[]>;

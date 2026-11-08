@@ -20,7 +20,7 @@ describe("buildReplayPayload", () => {
     const store = openStore(":memory:");
     store.saveFills([fill("1", 5 * H + 10), fill("2", 9 * H), fill("3", 20 * H)]);
     store.saveCandles(BTC, "1h", Array.from({ length: 30 }, (_, i) => ({ start: Millis.parse(i * H), open: Price.parse(1), high: Price.parse(2), low: Price.parse(1), close: Price.parse(2), volume: Qty.parse(1) })));
-    const p = buildReplayPayload({ store, snapshot: snapshot(10 * H), interval: "1h" });
+    const p = buildReplayPayload({ store, snapshot: snapshot(10 * H), interval: "1h", symbol: BTC });
     const d = decodePayload(p);
     expect(d.fills.map((f) => f.id)).toEqual(["1", "2"]);
     expect(d.candles[0]?.start).toBe(4 * H);

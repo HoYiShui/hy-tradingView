@@ -9,13 +9,9 @@
     "typecheck": "tsc -p . && pnpm -r typecheck",
     "test": "vitest run",
     "probe": "tsx scripts/probe-backpack.ts",
-    "verify:live": "tsx scripts/verify-live.ts",
     "reconcile:replay": "tsx scripts/reconcile-replay.ts",
-    "reconcile:replay:test": "ACCOUNT=test pnpm reconcile:replay",
     "bench:replay": "tsx scripts/bench-replay.ts",
-    "dev:test": "ACCOUNT=test HY_API=http://localhost:8788 pnpm dev",
-    "probe:test": "ACCOUNT=test pnpm probe",
-    "verify:live:test": "ACCOUNT=test pnpm verify:live"
+    "verify": "tsx scripts/verify.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

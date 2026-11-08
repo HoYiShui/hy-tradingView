@@ -3,9 +3,10 @@ import { resolve } from "node:path";
 import { MarketSymbol, Millis, Price, Qty, Usd, type LedgerEvent } from "../packages/types/src/index.js";
 import { buildTimeline, reduceLedger, seek, snapshotAt, sortLedger, START } from "../packages/replay/src/index.js";
 import { repoRoot } from "../apps/server/src/env.js";
+import { loadAccount } from "./account.js";
 
 type Row = Record<string, string | number | null>;
-const db = new DatabaseSync(resolve(repoRoot, process.argv[2] ?? "data/test.db"), { readOnly: true });
+const db = new DatabaseSync(resolve(repoRoot, loadAccount(process.argv[2]).account.dbPath), { readOnly: true });
 const events = sortLedger([
   ...(db.prepare("SELECT * FROM fills").all() as Row[]).map((r): LedgerEvent => ({
     kind: "fill",

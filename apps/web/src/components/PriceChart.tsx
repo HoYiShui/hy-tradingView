@@ -1,5 +1,5 @@
 import {
-  API, CANDLE_INTERVALS, CHART_SYMBOL, type Candle, type CandleInterval, type Fill,
+  API, CANDLE_INTERVALS, type Candle, type CandleInterval, type Fill,
 } from "@hy/types";
 import {
   CandlestickSeries, createChart, createSeriesMarkers, HistogramSeries, LineStyle,
@@ -8,7 +8,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePolled } from "../hooks/usePolled";
 import { snapshotOf } from "../lib/status";
-import { useFeedStore } from "../store/feedStore";
+import { useAccount, useFeedState } from "../hooks/useAccount";
 import { mergeCandles } from "../lib/candles";
 import { price, qty } from "../lib/format";
 import { buildFillMarkers, countUnmarked } from "../lib/markers";
@@ -42,21 +42,21 @@ const PAGE = 500;
 const MAX_LABELLED_MARKERS = 25;
 const LOAD_OLDER_WITHIN_BARS = 30;
 
-async function fetchCandles(interval: CandleInterval, cursor: { since?: number; before?: number } = {}): Promise<Candle[]> {
+async function fetchCandles(accountId: string, interval: CandleInterval, cursor: { since?: number; before?: number } = {}): Promise<Candle[]> {
   const q = new URLSearchParams({ interval, limit: String(PAGE) });
   if (cursor.since !== undefined) q.set("since", String(cursor.since));
   if (cursor.before !== undefined) q.set("before", String(cursor.before));
-  const res = await fetch(`${API.candles}?${q}`);
+  const res = await fetch(`${API.account(accountId, "candles")}?${q}`);
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return (await res.json()) as Candle[];
 }
 
 const NO_FILLS: Fill[] = [];
-const CHART_FILLS_URL = `${API.fills}?limit=5000&symbol=${CHART_SYMBOL}`;
 
 export function PriceChart({ className }: { className?: string }) {
-  const { data: fills } = usePolled<Fill[]>(CHART_FILLS_URL, 15_000, NO_FILLS);
-  const snapshot = useFeedStore((s) => snapshotOf(s.feed));
+  const { id: accountId, chartSymbol } = useAccount();
+  const { data: fills } = usePolled<Fill[]>(`${API.account(accountId, "fills")}?limit=5000&symbol=${chartSymbol}`, 15_000, NO_FILLS);
+  const snapshot = useFeedState((s) => snapshotOf(s.feed));
   const host = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeries = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -119,7 +119,7 @@ export function PriceChart({ className }: { className?: string }) {
     olderState.current = { loading: false, reachedStart: false, interval };
     setReachedStart(false);
     setLoadingOlder(false);
-    fetchCandles(interval)
+    fetchCandles(accountId, interval)
       .then((rows) => {
         if (cancelled) return;
         candlesRef.current = rows;
@@ -136,7 +136,7 @@ export function PriceChart({ className }: { className?: string }) {
       const last = candlesRef.current.at(-1);
       if (last === undefined || document.visibilityState !== "visible") return;
       try {
-        const fresh = await fetchCandles(interval, { since: last.start });
+        const fresh = await fetchCandles(accountId, interval, { since: last.start });
         if (cancelled || fresh.length === 0) return;
         for (const c of fresh) {
           candleSeries.current?.update(candlePoint(c));
@@ -169,7 +169,7 @@ export function PriceChart({ className }: { className?: string }) {
       const requested = st.interval;
       st.loading = true;
       setLoadingOlder(true);
-      fetchCandles(requested, { before: first.start })
+      fetchCandles(accountId, requested, { before: first.start })
         .then((older) => {
           if (olderState.current.interval !== requested) return;
           if (older.length === 0) {
@@ -197,9 +197,9 @@ export function PriceChart({ className }: { className?: string }) {
     return () => chart.timeScale().unsubscribeVisibleLogicalRangeChange(onRange);
   }, []);
 
-  const unmarked = useMemo(() => countUnmarked(fills, candles, interval), [fills, candles, interval]);
+  const unmarked = useMemo(() => countUnmarked(fills, candles, interval, chartSymbol), [fills, candles, interval, chartSymbol]);
 
-  const fillMarkers = useMemo(() => buildFillMarkers(fills, candles, interval), [fills, candles, interval]);
+  const fillMarkers = useMemo(() => buildFillMarkers(fills, candles, interval, chartSymbol), [fills, candles, interval, chartSymbol]);
 
   useEffect(() => {
     const markers = fillMarkers.map((m) => ({
@@ -212,7 +212,7 @@ export function PriceChart({ className }: { className?: string }) {
     const series = candleSeries.current;
     if (series === null) return;
     for (const l of priceLines.current) series.removePriceLine(l);
-    const specs = snapshot === null ? [] : buildPriceLines(snapshot.openOrders, snapshot.positions, CHART_SYMBOL);
+    const specs = snapshot === null ? [] : buildPriceLines(snapshot.openOrders, snapshot.positions, chartSymbol);
     priceLines.current = specs.map((s) =>
       series.createPriceLine({ price: s.price, color: s.color, lineStyle: LINE_STYLE[s.style], lineWidth: 1, axisLabelVisible: true, title: s.title }),
     );
@@ -224,7 +224,7 @@ export function PriceChart({ className }: { className?: string }) {
 
   return (
     <Panel
-      title={`${CHART_SYMBOL.replace("_USDC_PERP", "-PERP")} candles`}
+      title={`${chartSymbol.replace("_USDC_PERP", "-PERP")} candles`}
       className={className}
       aside={
         <Tabs value={interval} onValueChange={(v) => setIntervalKey(v as CandleInterval)}>

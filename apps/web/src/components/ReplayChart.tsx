@@ -68,7 +68,7 @@ export function ReplayChart({ model, frame }: { model: ReplayModel; frame: Frame
     d.candles = frame.candleCount;
     if (d.fills !== frame.chartFillCount || advance !== 0) {
       const fills: readonly Fill[] = model.chartFills.slice(0, frame.chartFillCount);
-      markers.current?.setMarkers(replayMarkers(fills, model.candles.slice(0, frame.candleCount), model.interval).map((m) => ({ ...m, time: m.time as UTCTimestamp })));
+      markers.current?.setMarkers(replayMarkers(fills, model.candles.slice(0, frame.candleCount), model.interval, model.symbol).map((m) => ({ ...m, time: m.time as UTCTimestamp })));
       d.fills = frame.chartFillCount;
     }
   }, [model, frame]);

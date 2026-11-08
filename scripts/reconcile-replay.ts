@@ -2,14 +2,11 @@ import { DatabaseSync } from "node:sqlite";
 import { resolve } from "node:path";
 import { MarketSymbol, Millis, Price, ReplayAnchor, Usd, Qty, type LedgerEvent } from "../packages/types/src/index.js";
 import { deriveBase, netPnl, reduceLedger, snapshotAt, sortLedger, type Marks } from "../packages/replay/src/index.js";
-import { loadConfig } from "../apps/server/src/config.js";
-import { loadRootEnv, repoRoot } from "../apps/server/src/env.js";
-import { createBackpackClient } from "../apps/server/src/backpack/client.js";
+import { repoRoot } from "../apps/server/src/env.js";
+import { loadAccount } from "./account.js";
 
-const { account } = loadRootEnv();
-const config = loadConfig(process.env);
-const client = createBackpackClient({ baseUrl: config.BACKPACK_API_URL, apiKey: config.BACKPACK_API_KEY, apiSecret: config.BACKPACK_API_SECRET });
-const db = new DatabaseSync(resolve(repoRoot, config.DB_PATH), { readOnly: true });
+const { account, client } = loadAccount(process.argv[2]);
+const db = new DatabaseSync(resolve(repoRoot, account.dbPath), { readOnly: true });
 
 type Row = Record<string, string | number | null>;
 const fills = (db.prepare("SELECT * FROM fills").all() as Row[]).map((r): LedgerEvent => ({
@@ -38,7 +35,7 @@ const base = deriveBase(ReplayAnchor.parse({ at, equity, marks }), book);
 const end = snapshotAt({ book, at, marks: markMap, base });
 
 const pnl = (rows: Record<string, string>[]) => rows.reduce((s, p) => s + Number(p["pnlRealized"]) + Number(p["pnlUnrealized"]), 0);
-console.log(`account ${account}, events ${events.length} (${fills.length} fills, ${funding.length} funding)`);
+console.log(`account ${account.id}, events ${events.length} (${fills.length} fills, ${funding.length} funding)`);
 console.log(`reconstructed realized ${book.realized.toFixed(4)} funding ${book.funding.toFixed(4)} fees ${book.fees.toFixed(4)} net ${netPnl(book).toFixed(4)}`);
 console.log(`derived starting balance (equity - net pnl - open pnl): ${base.toFixed(4)}`);
 console.log(`real equity ${equity.toFixed(4)}, replayed final equity ${end.equity.toFixed(4)}`);

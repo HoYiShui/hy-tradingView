@@ -2,7 +2,7 @@ import type { Position } from "@hy/types";
 import { price, qty, SIGN_MARK, shortSymbol, signedUsd, signOf, usd } from "../lib/format";
 import { snapshotOf } from "../lib/status";
 import { SIGN_TEXT, cn } from "../lib/utils";
-import { useFeedStore } from "../store/feedStore";
+import { useFeedState } from "../hooks/useAccount";
 import { Flash } from "./Flash";
 import { Empty, Panel } from "./Panel";
 import { SideBadge } from "./SideBadge";
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 const NUM = "num text-right";
 
 export function PositionsTable({ className }: { className?: string }) {
-  const snapshot = useFeedStore((s) => snapshotOf(s.feed));
+  const snapshot = useFeedState((s) => snapshotOf(s.feed));
   return <PositionsPanel positions={snapshot?.positions ?? []} emptyText={snapshot !== null ? "No open positions" : "Waiting for data"} className={className} />;
 }
 

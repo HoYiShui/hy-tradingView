@@ -1,4 +1,4 @@
-import { CHART_SYMBOL, type Candle, type CandleInterval, type Fill, type Side } from "@hy/types";
+import { type Candle, type CandleInterval, type Fill, type Side } from "@hy/types";
 import { findCandleStart } from "./candles";
 import { price, qty } from "./format";
 import { COLOR } from "./theme";
@@ -25,7 +25,7 @@ export function buildFillMarkers(
   fills: readonly Fill[],
   candles: readonly Candle[],
   interval: CandleInterval,
-  symbol: string = CHART_SYMBOL,
+  symbol: string,
 ): MarkerSpec[] {
   const buckets = new Map<string, Bucket>();
   for (const f of fills) {
@@ -62,7 +62,7 @@ export function countUnmarked(
   fills: readonly Fill[],
   candles: readonly Candle[],
   interval: CandleInterval,
-  symbol: string = CHART_SYMBOL,
+  symbol: string,
 ): number {
   let n = 0;
   for (const f of fills) if (f.symbol === symbol && findCandleStart(candles, f.at, interval) === null) n += 1;

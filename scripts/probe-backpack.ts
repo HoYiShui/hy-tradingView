@@ -1,18 +1,9 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { loadConfig } from "../apps/server/src/config.js";
-import { loadRootEnv } from "../apps/server/src/env.js";
-import { createBackpackClient } from "../apps/server/src/backpack/client.js";
 import type { ReadInstruction } from "../apps/server/src/backpack/sign.js";
+import { loadAccount } from "./account.js";
 
-const { account } = loadRootEnv();
-const config = loadConfig(process.env);
-const client = createBackpackClient({
-  baseUrl: config.BACKPACK_API_URL,
-  apiKey: config.BACKPACK_API_KEY,
-  apiSecret: config.BACKPACK_API_SECRET,
-});
-
-const dir = new URL(account === "test" ? "./samples-test/" : "./samples/", import.meta.url);
+const { account, client } = loadAccount(process.argv[2]);
+const dir = new URL(`./samples-${account.id}/`, import.meta.url);
 mkdirSync(dir, { recursive: true });
 
 const REDACTED_KEYS = new Set(["userId", "subaccountId"]);

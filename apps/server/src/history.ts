@@ -22,10 +22,13 @@ export async function syncFills(reader: ExchangeReader, store: Store): Promise<v
   store.saveFills(fills);
 }
 
-export async function syncSlowHistory(reader: ExchangeReader, store: Store): Promise<void> {
-  const fromFunding = store.latestFundingAt();
-  const funding = await pageAll((offset) => reader.fetchFunding({ from: fromFunding, limit: PAGE, offset }));
+export async function syncFunding(reader: ExchangeReader, store: Store): Promise<void> {
+  const from = store.latestFundingAt();
+  const funding = await pageAll((offset) => reader.fetchFunding({ from, limit: PAGE, offset }));
   store.saveFunding(funding);
+}
+
+export async function syncPositionHistory(reader: ExchangeReader, store: Store): Promise<void> {
   const positions = await pageAll((offset) => reader.fetchPositionHistory({ limit: PAGE, offset }));
   store.savePositions(positions);
 }
@@ -152,9 +155,13 @@ export function createCandleService(input: {
     }
   }
 
+  const refresh = (interval: CandleInterval) =>
+    ensureFresh(interval).catch((e) => log(`candle refresh ${interval} failed: ${e instanceof Error ? e.message : String(e)}`));
+
   return {
+    refresh,
     async get(interval: CandleInterval, q: CandleQuery) {
-      await ensureFresh(interval).catch((e) => log(`candle refresh ${interval} failed: ${e instanceof Error ? e.message : String(e)}`));
+      await refresh(interval);
       if (q.since === null) await waitForBars(interval, q.before, q.limit);
       return input.store.candles({ symbol: input.symbol, interval, since: q.since, before: q.before, limit: q.limit });
     },

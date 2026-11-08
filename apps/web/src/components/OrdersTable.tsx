@@ -2,7 +2,7 @@ import type { OpenOrder } from "@hy/types";
 import { price, qty, shortSymbol, triggerSizeLabel, utcTime } from "../lib/format";
 import { snapshotOf } from "../lib/status";
 import { cn } from "../lib/utils";
-import { useFeedStore } from "../store/feedStore";
+import { useFeedState } from "../hooks/useAccount";
 import { Empty, Panel } from "./Panel";
 import { SideBadge } from "./SideBadge";
 import { Badge } from "./ui/badge";
@@ -58,7 +58,7 @@ function OrderRow({ o }: { o: OpenOrder }) {
 }
 
 export function OrdersTable({ className }: { className?: string }) {
-  const snapshot = useFeedStore((s) => snapshotOf(s.feed));
+  const snapshot = useFeedState((s) => snapshotOf(s.feed));
   const orders = snapshot?.openOrders ?? [];
   return (
     <Panel title="Open orders" className={className}>

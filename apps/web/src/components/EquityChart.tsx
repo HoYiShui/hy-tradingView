@@ -1,6 +1,7 @@
 import { API, type EquityPoint, type EquityRange } from "@hy/types";
 import { createChart, LineSeries, LineType, type IChartApi, type ISeriesApi, type UTCTimestamp } from "lightweight-charts";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAccount } from "../hooks/useAccount";
 import { usePolled } from "../hooks/usePolled";
 import { equityChange, equityUrl, RANGES, shapeEquity } from "../lib/equity";
 import { SIGN_MARK, signedUsd, signOf, usd } from "../lib/format";
@@ -13,8 +14,9 @@ import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 const NO_POINTS: EquityPoint[] = [];
 
 export function EquityChart() {
+  const { id } = useAccount();
   const [range, setRange] = useState<EquityRange>("7d");
-  const { data, loaded, error } = usePolled<EquityPoint[]>(equityUrl(API.equity, range), 30_000, NO_POINTS);
+  const { data, loaded, error } = usePolled<EquityPoint[]>(equityUrl(API.account(id, "equity"), range), 30_000, NO_POINTS);
   const host = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const line = useRef<ISeriesApi<"Line"> | null>(null);

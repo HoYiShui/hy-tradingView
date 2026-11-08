@@ -1,4 +1,4 @@
-import { Millis } from "@hy/types";
+import { MarketSymbol, Millis } from "@hy/types";
 import { buildSnapshot } from "../domain.js";
 import type { ExchangeReader } from "../exchange.js";
 import type { BackpackClient } from "./client.js";
@@ -14,6 +14,7 @@ import {
 } from "./parse.js";
 
 const ACCOUNT_TTL_MS = 60_000;
+const CHART_SYMBOL = MarketSymbol.parse("BTC_USDC_PERP");
 
 export function createBackpackReader(client: BackpackClient, now: () => number = Date.now): ExchangeReader {
   let accountCache: { at: number; value: unknown } | null = null;
@@ -26,6 +27,8 @@ export function createBackpackReader(client: BackpackClient, now: () => number =
   }
 
   return {
+    exchange: "backpack",
+    chartSymbol: CHART_SYMBOL,
     async fetchLive() {
       const [acc, collateral, positions, orders] = await Promise.all([
         account(),

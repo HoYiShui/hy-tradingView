@@ -29,16 +29,17 @@ export function reduceFeed(state: FeedState, event: FeedEvent): FeedState {
   }
 }
 
-export const useFeedStore = create<FeedState>(() => INITIAL_FEED_STATE);
+export const useFeedStore = create<{ feeds: Record<string, FeedState> }>(() => ({ feeds: {} }));
 
-const dispatch = (event: FeedEvent) => useFeedStore.setState((s) => reduceFeed(s, event), true);
+const dispatch = (accountId: string, event: FeedEvent) =>
+  useFeedStore.setState((s) => ({ feeds: { ...s.feeds, [accountId]: reduceFeed(s.feeds[accountId] ?? INITIAL_FEED_STATE, event) } }));
 
-export function connectFeed(): () => void {
-  const es = new EventSource(API.feed);
-  es.onopen = () => dispatch({ kind: "open" });
-  es.onerror = () => dispatch({ kind: "error" });
+export function connectFeed(accountId: string): () => void {
+  const es = new EventSource(API.account(accountId, "stream"));
+  es.onopen = () => dispatch(accountId, { kind: "open" });
+  es.onerror = () => dispatch(accountId, { kind: "error" });
   es.addEventListener("feed", (e) => {
-    dispatch({ kind: "feed", feed: JSON.parse((e as MessageEvent<string>).data) as Feed });
+    dispatch(accountId, { kind: "feed", feed: JSON.parse((e as MessageEvent<string>).data) as Feed });
   });
   return () => es.close();
 }

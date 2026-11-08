@@ -19,7 +19,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: process.env["HY_API"] ?? "http://localhost:8787",
+        target: "http://localhost:8787",
         changeOrigin: true,
         configure: (proxy) => {
           proxy.on("proxyRes", (res) => {

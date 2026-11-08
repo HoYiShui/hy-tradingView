@@ -224,14 +224,32 @@ export const ReplayPayload = z.object({
 });
 export type ReplayPayload = z.infer<typeof ReplayPayload>;
 
-export const CHART_SYMBOL = MarketSymbol.parse("BTC_USDC_PERP");
+export const SURFACES = ["dashboard", "replay"] as const;
+export const Surface = z.enum(SURFACES);
+export type Surface = z.infer<typeof Surface>;
+
+export const AccountInfo = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  exchange: z.string().min(1),
+  surfaces: z.array(Surface).min(1),
+  chartSymbol: MarketSymbol,
+});
+export type AccountInfo = z.infer<typeof AccountInfo>;
+export const AccountList = z.array(AccountInfo);
+
+export const ACCOUNT_LEAVES = {
+  snapshot: "snapshot",
+  stream: "stream",
+  fills: "fills",
+  candles: "candles",
+  equity: "equity",
+  dailyPnl: "daily-pnl",
+} as const;
 
 export const API = {
-  feed: "/api/stream",
-  feedOnce: "/api/feed",
-  candles: "/api/candles",
-  fills: "/api/fills",
-  dailyPnl: "/api/pnl/daily",
-  equity: "/api/equity",
+  accounts: "/api/accounts",
   replay: "/api/replay",
+  account: (id: string, leaf: keyof typeof ACCOUNT_LEAVES): string =>
+    `/api/accounts/${encodeURIComponent(id)}/${ACCOUNT_LEAVES[leaf]}`,
 } as const;

@@ -1,7 +1,7 @@
 import { leverageX, percent, SIGN_MARK, SIGN_WORD, signedUsd, signOf, usd } from "../lib/format";
 import { snapshotOf } from "../lib/status";
 import { cn } from "../lib/utils";
-import { useFeedStore } from "../store/feedStore";
+import { useFeedState } from "../hooks/useAccount";
 import { Flash } from "./Flash";
 import { Card } from "./ui/card";
 
@@ -20,7 +20,7 @@ export function Tile({ label, value, sub, tone }: { label: string; value: string
 const LABELS = ["Equity", "Open PnL", "Cross leverage", "Available equity", "Locked equity", "Margin fraction"];
 
 export function StatTiles() {
-  const snapshot = useFeedStore((s) => snapshotOf(s.feed));
+  const snapshot = useFeedState((s) => snapshotOf(s.feed));
   return (
     <section aria-label="Account summary" className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
       {snapshot === null ? LABELS.map((l) => <Tile key={l} label={l} value="-" />) : <Loaded snapshot={snapshot} />}

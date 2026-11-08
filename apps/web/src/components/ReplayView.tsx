@@ -1,12 +1,16 @@
-import { CANDLE_INTERVALS, type CandleInterval, type Fill } from "@hy/types";
+import { CANDLE_INTERVALS, type AccountInfo, type CandleInterval, type Fill } from "@hy/types";
 import { START } from "@hy/replay";
 import { Pause, Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSelectedAccount } from "../hooks/useAccounts";
 import { useReplayData } from "../hooks/useReplayData";
+import { accountsOn } from "../lib/accounts";
 import { DAY_MS, SPEEDS, makeClock, realSecondsToFinish, seekTo, tick, togglePlay, withSpeed, type Clock } from "../lib/clock";
 import { leverageX, signedUsd, signOf, SIGN_MARK, usd } from "../lib/format";
 import { frameAt, type Frame, type ReplayModel } from "../lib/replayModel";
 import { SIGN_TEXT, cn } from "../lib/utils";
+import { AccountSwitcher } from "./AccountSwitcher";
+import { Notice } from "./AccountsGate";
 import { FillsTable } from "./FillsTable";
 import { PositionsPanel } from "./PositionsTable";
 import { ReplayChart } from "./ReplayChart";
@@ -120,23 +124,24 @@ function Player({ model }: { model: ReplayModel }) {
   );
 }
 
-export function ReplayView() {
+function ReplayPage({ account, accounts, onSelect }: { account: AccountInfo; accounts: AccountInfo[]; onSelect: (id: string) => void }) {
   const [interval, setInterval] = useState<CandleInterval>("1h");
-  const load = useReplayData(interval);
+  const load = useReplayData(account.id, interval);
   return (
     <TooltipProvider delayDuration={150}>
       <div className="mx-auto max-w-[1680px] px-2 pb-8 pt-2 sm:px-4 sm:pt-3">
         <header className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h1 className="text-base font-semibold text-foreground">
-            Time machine <span className="font-normal text-muted-foreground">replay of past trading, reconstructed from fills, funding and fees</span>
+            Time machine <span className="font-normal text-muted-foreground">{account.label}, replay of past trading reconstructed from fills, funding and fees</span>
           </h1>
           <div className="flex items-center gap-3 text-xs">
+            <AccountSwitcher accounts={accountsOn(accounts, "replay")} selected={account.id} onSelect={onSelect} />
             <Tabs value={interval} onValueChange={(v) => setInterval(v as CandleInterval)}>
               <TabsList aria-label="Candle interval">
                 {CANDLE_INTERVALS.filter((i) => ["15m", "1h", "4h", "1d"].includes(i)).map((i) => <TabsTrigger key={i} value={i}>{i}</TabsTrigger>)}
               </TabsList>
             </Tabs>
-            <a href="/" className="text-primary hover:underline">Live dashboard</a>
+            <a href="/" className="text-primary hover:underline">Dashboard</a>
           </div>
         </header>
         <p className="mb-2 text-xs text-muted-foreground">
@@ -148,4 +153,17 @@ export function ReplayView() {
       </div>
     </TooltipProvider>
   );
+}
+
+export function ReplayView({ accounts }: { accounts: AccountInfo[] }) {
+  const [account, select] = useSelectedAccount(accounts, "replay");
+  if (account === null) {
+    return (
+      <Notice tone="error">
+        No account is set up for the time machine. Give an account the replay surface in .env, then restart the server.
+        <a href="/" className="mt-3 block text-primary hover:underline">Dashboard</a>
+      </Notice>
+    );
+  }
+  return <ReplayPage key={account.id} account={account} accounts={accounts} onSelect={select} />;
 }

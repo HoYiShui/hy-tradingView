@@ -3,8 +3,8 @@ import { buildFillMarkers } from "./markers";
 
 export const MAX_LABELLED_MARKERS = 25;
 
-export function replayMarkers(fills: readonly Fill[], candles: readonly Candle[], interval: CandleInterval) {
-  const specs = buildFillMarkers(fills, candles, interval);
+export function replayMarkers(fills: readonly Fill[], candles: readonly Candle[], interval: CandleInterval, symbol: string) {
+  const specs = buildFillMarkers(fills, candles, interval, symbol);
   const labelled = specs.length <= MAX_LABELLED_MARKERS;
   return specs.map((m) => ({ time: m.time, position: m.position, shape: m.shape, color: m.color, text: labelled ? m.text : "" }));
 }
