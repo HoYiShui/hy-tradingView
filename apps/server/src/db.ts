@@ -15,6 +15,7 @@ import {
   Usd,
   type CandleInterval,
 } from "@hy/types";
+import { mergeRanges, type Range } from "./coverage.js";
 import type { FundingPayment, PositionRecord } from "./backpack/parse.js";
 
 const SCHEMA = `
@@ -22,6 +23,10 @@ CREATE TABLE IF NOT EXISTS candles (
   symbol TEXT NOT NULL, interval TEXT NOT NULL, start_ms INTEGER NOT NULL,
   open REAL NOT NULL, high REAL NOT NULL, low REAL NOT NULL, close REAL NOT NULL, volume REAL NOT NULL,
   PRIMARY KEY (symbol, interval, start_ms)
+) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS candle_coverage (
+  symbol TEXT NOT NULL, interval TEXT NOT NULL, from_ms INTEGER NOT NULL, to_ms INTEGER NOT NULL,
+  PRIMARY KEY (symbol, interval, from_ms)
 ) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS fills (
   id TEXT PRIMARY KEY, order_id TEXT NOT NULL, symbol TEXT NOT NULL, side TEXT NOT NULL,
@@ -135,9 +140,21 @@ export function openStore(path: string) {
         for (const c of candles) upsertCandle.run(symbol, interval, c.start, c.open, c.high, c.low, c.close, c.volume);
       });
     },
-    candles(input: { symbol: MarketSymbol; interval: CandleInterval; since: Millis | null; limit: number }): Candle[] {
+    candles(input: {
+      symbol: MarketSymbol;
+      interval: CandleInterval;
+      since: Millis | null;
+      before?: Millis | null;
+      limit: number;
+    }): Candle[] {
       const rows = (
-        input.since === null
+        input.before != null
+          ? db
+              .prepare(
+                `SELECT * FROM (SELECT * FROM candles WHERE symbol = ? AND interval = ? AND start_ms < ? ORDER BY start_ms DESC LIMIT ?) ORDER BY start_ms`,
+              )
+              .all(input.symbol, input.interval, input.before, input.limit)
+          : input.since === null
           ? db
               .prepare(
                 `SELECT * FROM (SELECT * FROM candles WHERE symbol = ? AND interval = ? ORDER BY start_ms DESC LIMIT ?) ORDER BY start_ms`,
@@ -155,6 +172,24 @@ export function openStore(path: string) {
       const row = db
         .prepare(`SELECT MAX(start_ms) AS m FROM candles WHERE symbol = ? AND interval = ?`)
         .get(symbol, interval) as Row | undefined;
+      return row?.m == null ? null : Millis.parse(row.m);
+    },
+    coverage(symbol: MarketSymbol, interval: CandleInterval): Range[] {
+      const rows = db
+        .prepare(`SELECT from_ms, to_ms FROM candle_coverage WHERE symbol = ? AND interval = ? ORDER BY from_ms`)
+        .all(symbol, interval) as Row[];
+      return rows.map((r) => ({ from: Number(r.from_ms), to: Number(r.to_ms) }));
+    },
+    addCoverage(symbol: MarketSymbol, interval: CandleInterval, range: Range): void {
+      const merged = mergeRanges([...this.coverage(symbol, interval), range]);
+      inTransaction(() => {
+        db.prepare(`DELETE FROM candle_coverage WHERE symbol = ? AND interval = ?`).run(symbol, interval);
+        const insert = db.prepare(`INSERT INTO candle_coverage VALUES (?, ?, ?, ?)`);
+        for (const r of merged) insert.run(symbol, interval, r.from, r.to);
+      });
+    },
+    earliestFillAt(symbol: MarketSymbol): Millis | null {
+      const row = db.prepare(`SELECT MIN(at_ms) AS m FROM fills WHERE symbol = ?`).get(symbol) as Row | undefined;
       return row?.m == null ? null : Millis.parse(row.m);
     },
     saveFills(fills: readonly Fill[]): void {

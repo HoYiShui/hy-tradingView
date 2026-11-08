@@ -28,7 +28,7 @@ const reader = createBackpackReader(
 );
 const store = openStore(resolve(repoRoot, config.DB_PATH));
 const feed = createFeed(reader, { pollMs: 2000, log });
-const candles = createCandleService({ reader, store, symbol: CHART_SYMBOL });
+const candles = createCandleService({ reader, store, symbol: CHART_SYMBOL, log });
 
 function every(ms: number, name: string, work: () => Promise<void>): void {
   let running = false;

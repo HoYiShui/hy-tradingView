@@ -14,6 +14,8 @@ const MAX_STREAM_CLIENTS = 200;
 const CandleQuery = z.object({
   interval: CandleInterval,
   since: z.coerce.number().int().nonnegative().optional(),
+  before: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().min(1).max(1000).default(500),
 });
 const EquityQuery = z.object({ range: EquityRange.default("7d") });
 const FillQuery = z.object({ limit: z.coerce.number().int().min(1).max(1000).default(200) });
@@ -53,7 +55,8 @@ export function createApp(deps: {
     const q = CandleQuery.safeParse(c.req.query());
     if (!q.success) return c.json({ error: "bad query" }, 400);
     const since = q.data.since === undefined ? null : Millis.parse(q.data.since);
-    return c.json(await deps.candles.get(q.data.interval, since));
+    const before = q.data.before === undefined ? null : Millis.parse(q.data.before);
+    return c.json(await deps.candles.get(q.data.interval, { since, before, limit: q.data.limit }));
   });
 
   app.get(API.fills, (c) => {

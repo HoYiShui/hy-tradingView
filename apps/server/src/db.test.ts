@@ -80,6 +80,28 @@ describe("candles", () => {
   });
 });
 
+describe("candle cursor and coverage", () => {
+  const c = (n: number) => ({ start: Millis.parse(n * 1000), open: 1, high: 1, low: 1, close: 1, volume: 1 }) as never;
+
+  it("returns the newest N bars strictly before the cursor in ascending order", () => {
+    store = openStore(":memory:");
+    store.saveCandles(symbol, "1h", [1, 2, 3, 4, 5].map(c));
+    const page = store.candles({ symbol, interval: "1h", since: null, before: Millis.parse(4000), limit: 2 });
+    expect(page.map((x) => x.start)).toEqual([2000, 3000]);
+    expect(store.candles({ symbol, interval: "1h", since: null, before: Millis.parse(1000), limit: 5 })).toEqual([]);
+  });
+
+  it("merges stored coverage ranges per interval", () => {
+    store = openStore(":memory:");
+    store.addCoverage(symbol, "1h", { from: 0, to: 10 });
+    store.addCoverage(symbol, "1h", { from: 10, to: 20 });
+    store.addCoverage(symbol, "1h", { from: 30, to: 40 });
+    store.addCoverage(symbol, "4h", { from: 5, to: 6 });
+    expect(store.coverage(symbol, "1h")).toEqual([{ from: 0, to: 20 }, { from: 30, to: 40 }]);
+    expect(store.coverage(symbol, "4h")).toEqual([{ from: 5, to: 6 }]);
+  });
+});
+
 describe("fills", () => {
   it("returns newest first and tracks the latest fill time for incremental sync", () => {
     store = openStore(":memory:");
