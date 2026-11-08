@@ -39,6 +39,7 @@ const volumePoint = (c: Candle) => ({ time: ts(c.start), value: c.volume, color:
 const candlePoint = (c: Candle) => ({ time: ts(c.start), open: c.open, high: c.high, low: c.low, close: c.close });
 
 const PAGE = 500;
+const MAX_LABELLED_MARKERS = 25;
 const LOAD_OLDER_WITHIN_BARS = 30;
 
 async function fetchCandles(interval: CandleInterval, cursor: { since?: number; before?: number } = {}): Promise<Candle[]> {
@@ -202,7 +203,7 @@ export function PriceChart({ className }: { className?: string }) {
 
   useEffect(() => {
     const markers = fillMarkers.map((m) => ({
-      time: m.time as UTCTimestamp, position: m.position, shape: m.shape, color: m.color, text: m.text,
+      time: m.time as UTCTimestamp, position: m.position, shape: m.shape, color: m.color, text: fillMarkers.length <= MAX_LABELLED_MARKERS ? m.text : "",
     }));
     markerPlugin.current?.setMarkers(markers);
   }, [fillMarkers]);
