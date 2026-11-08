@@ -1,10 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import type { ReadInstruction } from "../apps/server/src/backpack/sign.js";
-import { loadAccount } from "./account.js";
-
-const { account, client } = loadAccount(process.argv[2]);
-const dir = new URL(`./samples-${account.id}/`, import.meta.url);
-mkdirSync(dir, { recursive: true });
+import { createBackpackClient } from "../apps/server/src/backpack/client.js";
+import type { ExchangeCredentials } from "../apps/server/src/config.js";
 
 const REDACTED_KEYS = new Set(["userId", "subaccountId"]);
 const redact = (v: unknown): unknown =>
@@ -15,8 +12,7 @@ const redact = (v: unknown): unknown =>
       : v;
 
 type Probe = { name: string; instruction?: ReadInstruction; path: string; params?: Record<string, string | number> };
-const startSec = Math.floor(Date.now() / 1000) - 3 * 3600;
-const probes: Probe[] = [
+const probesFor = (startSec: number): Probe[] => [
   { name: "account", instruction: "accountQuery", path: "/api/v1/account" },
   { name: "collateral", instruction: "collateralQuery", path: "/api/v1/capital/collateral" },
   { name: "positions", instruction: "positionQuery", path: "/api/v1/position" },
@@ -32,16 +28,23 @@ const probes: Probe[] = [
   { name: "markets", path: "/api/v1/markets" },
 ];
 
-for (const p of probes) {
-  try {
-    const body = p.instruction
-      ? await client.signedGet(p.instruction, p.path, p.params)
-      : await client.publicGet(p.path, p.params);
-    const trimmed = p.name === "markets" && Array.isArray(body) ? body.filter((m) => /BTC/.test(String(m?.symbol))).slice(0, 6) : body;
-    writeFileSync(new URL(`${p.name}.json`, dir), JSON.stringify(redact(trimmed), null, 2));
-    const n = Array.isArray(body) ? `${body.length} items` : typeof body;
-    console.log(`ok   ${p.name} (${n})`);
-  } catch (e) {
-    console.log(`fail ${p.name}: ${e instanceof Error ? e.message : String(e)}`);
+export async function probeBackpack(id: string, { apiUrl, apiKey, apiSecret }: Extract<ExchangeCredentials, { exchange: "backpack" }>): Promise<void> {
+  const client = createBackpackClient({ baseUrl: apiUrl, apiKey, apiSecret });
+  const dir = new URL(`./samples-${id}/`, import.meta.url);
+  mkdirSync(dir, { recursive: true });
+  const startSec = Math.floor(Date.now() / 1000) - 3 * 3600;
+  const probes = probesFor(startSec);
+  for (const p of probes) {
+    try {
+      const body = p.instruction
+        ? await client.signedGet(p.instruction, p.path, p.params)
+        : await client.publicGet(p.path, p.params);
+      const trimmed = p.name === "markets" && Array.isArray(body) ? body.filter((m) => /BTC/.test(String(m?.symbol))).slice(0, 6) : body;
+      writeFileSync(new URL(`${p.name}.json`, dir), JSON.stringify(redact(trimmed), null, 2));
+      const n = Array.isArray(body) ? `${body.length} items` : typeof body;
+      console.log(`ok   ${p.name} (${n})`);
+    } catch (e) {
+      console.log(`fail ${p.name}: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 }

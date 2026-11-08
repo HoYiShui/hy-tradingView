@@ -8,7 +8,7 @@
     "build": "pnpm -r build",
     "typecheck": "tsc -p . && pnpm -r typecheck",
     "test": "vitest run",
-    "probe": "tsx scripts/probe-backpack.ts",
+    "probe": "tsx scripts/probe.ts",
     "reconcile:replay": "tsx scripts/reconcile-replay.ts",
     "bench:replay": "tsx scripts/bench-replay.ts",
     "verify": "tsx scripts/verify.ts"

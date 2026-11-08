@@ -1,19 +1,13 @@
 import { DatabaseSync } from "node:sqlite";
 import { resolve } from "node:path";
-import { MarketSymbol, Millis, Price, Qty, Usd, type LedgerEvent } from "../packages/types/src/index.js";
 import { buildTimeline, reduceLedger, seek, snapshotAt, sortLedger, START } from "../packages/replay/src/index.js";
 import { repoRoot } from "../apps/server/src/env.js";
 import { loadAccount } from "./account.js";
+import { loadLedger } from "./ledger.js";
 
-type Row = Record<string, string | number | null>;
 const db = new DatabaseSync(resolve(repoRoot, loadAccount(process.argv[2]).account.dbPath), { readOnly: true });
-const events = sortLedger([
-  ...(db.prepare("SELECT * FROM fills").all() as Row[]).map((r): LedgerEvent => ({
-    kind: "fill",
-    fill: { id: String(r.id), orderId: "", symbol: MarketSymbol.parse(r.symbol), side: r.side === "buy" ? "buy" : "sell", price: Price.parse(r.price), quantity: Qty.parse(r.quantity), fee: Usd.parse(r.fee), liquidity: "taker", at: Millis.parse(r.at_ms) },
-  })),
-  ...(db.prepare("SELECT * FROM funding").all() as Row[]).map((r): LedgerEvent => ({ kind: "funding", funding: { symbol: MarketSymbol.parse(r.symbol), at: Millis.parse(r.at_ms), amount: Usd.parse(r.amount) } })),
-]);
+const ledger = loadLedger(db);
+const events = sortLedger([...ledger.fills, ...ledger.funding]);
 const first = events[0];
 const last = events.at(-1);
 if (!first || !last) throw new Error("no events");
