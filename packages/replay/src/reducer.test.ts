@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MarketSymbol, Millis, Price, Qty, Usd, type LedgerEvent } from "@hy/types";
-import { deriveBase, netPnl, reduceLedger, snapshotAt, sortLedger, type Marks } from "./reducer.js";
+import { deriveBase, eventAt, netPnl, reduceLedger, snapshotAt, sortLedger, type Marks } from "./reducer.js";
 import { buildTimeline, seek, START } from "./timeline.js";
 
 const BTC = MarketSymbol.parse("BTC_USDC_PERP");
@@ -16,6 +16,10 @@ const fill = (at: number, side: "buy" | "sell", quantity: number, price: number,
 const funding = (at: number, amount: number, symbol = BTC): LedgerEvent => ({
   kind: "funding",
   funding: { symbol, at: Millis.parse(at), amount: Usd.parse(amount) },
+});
+const transfer = (at: number, amount: number): LedgerEvent => ({
+  kind: "transfer",
+  transfer: { at: Millis.parse(at), amount: Usd.parse(amount) },
 });
 const mark = (price: number, at: number, symbol = BTC): Marks => ({ [symbol]: { price, at } });
 
@@ -62,6 +66,68 @@ describe("reduceLedger", () => {
     const sorted = sortLedger([funding(5, 1), fill(5, "buy", 1, 100), fill(4, "buy", 1, 100)]);
     expect(sorted.map((e) => e.kind)).toEqual(["fill", "fill", "funding"]);
   });
+
+  it("orders a transfer after fills and funding at the same instant", () => {
+    const sorted = sortLedger([transfer(5, 10), funding(5, 1), fill(5, "buy", 1, 100)]);
+    expect(sorted.map((e) => e.kind)).toEqual(["fill", "funding", "transfer"]);
+  });
+
+  it("sums transfers into the book without touching pnl", () => {
+    const b = reduceLedger([transfer(1, 500), fill(2, "buy", 1, 100, 1), transfer(3, -120.5)]);
+    expect(b.transfers).toBe(379.5);
+    expect(netPnl(b)).toBe(-1);
+  });
+});
+
+describe("transfers in the equity curve", () => {
+  const BASE = 0;
+  const events = sortLedger([
+    transfer(1, 1000),
+    fill(2, "buy", 1, 100, 1),
+    fill(3, "sell", 1, 110, 1),
+    transfer(4, -400.5),
+    fill(5, "sell", 2, 100, 1),
+    fill(6, "buy", 3, 90, 1),
+    transfer(7, 250),
+  ]);
+  const at = (t: number, price: number) =>
+    snapshotAt({ book: reduceLedger(events.filter((e) => eventAt(e) <= t)), at: t, marks: mark(price, t), base: BASE });
+
+  it("a deposit moves equity and cash, not realized pnl", () => {
+    const s = at(1, 100);
+    expect(s.equity).toBe(1000);
+    expect(s.totals).toMatchObject({ realized: 0, fees: 0, transfers: 1000 });
+  });
+
+  it("a withdrawal between trades lowers equity by its amount and keeps pnl exact", () => {
+    const s = at(4, 110);
+    expect(s.totals).toMatchObject({ realized: 10, fees: 2, transfers: 599.5 });
+    expect(s.equity).toBeCloseTo(1000 + 10 - 2 - 400.5);
+  });
+
+  it("a fee charged on a transfer is part of the signed amount, so a withdrawal of 100 plus fee 1 is -101", () => {
+    const s = snapshotAt({ book: reduceLedger([transfer(1, 500), transfer(2, -101)]), at: 2, marks: {}, base: 0 });
+    expect(s.equity).toBe(399);
+  });
+
+  it("a flip through zero keeps pnl exact while transfers shift equity around it", () => {
+    const flipped = at(6, 90);
+    expect(flipped.totals.realized).toBeCloseTo(30);
+    expect(flipped.positions).toHaveLength(1);
+    expect(flipped.positions[0]).toMatchObject({ direction: "long", quantity: 1, entryPrice: 90 });
+    expect(flipped.equity).toBeCloseTo(1000 + 30 - 4 - 400.5);
+  });
+
+  it("derives the starting balance so the final equity equals the anchor, and a late deposit does not read as profit", () => {
+    const book = reduceLedger(events);
+    const anchor = { at: Millis.parse(8), equity: Usd.parse(1000 + 30 - 4 - 400.5 + 250 + 30), marks: { [BTC]: Price.parse(120) } };
+    const base = deriveBase(anchor, book);
+    expect(base).toBeCloseTo(0);
+    const end = snapshotAt({ book, at: 8, marks: mark(120, 8), base });
+    expect(end.equity).toBeCloseTo(anchor.equity);
+    const withoutTransfers = deriveBase(anchor, reduceLedger(events.filter((e) => e.kind !== "transfer")));
+    expect(withoutTransfers).toBeCloseTo(849.5);
+  });
 });
 
 describe("snapshotAt", () => {
@@ -72,7 +138,7 @@ describe("snapshotAt", () => {
     const s = snapshotAt({ book, at: 4, marks: mark(120, 4), base: 1000 });
     expect(s.positions).toHaveLength(1);
     expect(s.positions[0]).toMatchObject({ direction: "long", quantity: 1, entryPrice: 100, markPrice: 120, openPnl: 20, notional: 120 });
-    expect(s.totals).toEqual({ realized: 10, funding: -2, fees: 2 });
+    expect(s.totals).toEqual({ realized: 10, funding: -2, fees: 2, transfers: 0 });
     expect(s.equity).toBe(1000 + 10 - 2 - 2 + 20);
     expect(s.metrics.leverage).toBeCloseTo(120 / s.equity);
   });
@@ -111,7 +177,7 @@ describe("timeline seek", () => {
     let cursor = START;
     for (const t of [0, 55, 56, 300, 120, 399, 5, 400, 250, 250, 1]) {
       cursor = seek(tl, cursor, t);
-      const scratch = reduceLedger(sorted.filter((e) => (e.kind === "fill" ? e.fill.at : e.funding.at) <= t));
+      const scratch = reduceLedger(sorted.filter((e) => eventAt(e) <= t));
       expect(cursor.book).toEqual(scratch);
     }
   });

@@ -2,7 +2,7 @@ import {
   Millis, type Candle, type EquityPoint, type Fill, type OrderSpan, type ReplayAnchor, type ReplayPayload, type ReplayState,
 } from "@hy/types";
 import {
-  buildTimeline, decodePayload, deriveBase, openAt, reduceLedger, seek, snapshotAt, START,
+  buildTimeline, decodePayload, deriveBase, eventAt, openAt, reduceLedger, seek, snapshotAt, START,
   type Cursor, type Marks, type Timeline,
 } from "@hy/replay";
 
@@ -89,7 +89,7 @@ export function buildModel(payload: ReplayPayload): ReplayModel {
   const end = reduceLedger(d.ledger);
   const base = deriveBase(payload.anchor, end);
   const first = d.ledger[0];
-  const startAt = first === undefined ? payload.anchor.at : first.kind === "fill" ? first.fill.at : first.funding.at;
+  const startAt = first === undefined ? payload.anchor.at : eventAt(first);
   const chartFills = d.fills.filter((f) => f.symbol === payload.symbol);
   const partial = {
     symbol: payload.symbol, candles: d.candles, anchor: payload.anchor,

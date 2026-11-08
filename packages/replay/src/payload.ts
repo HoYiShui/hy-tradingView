@@ -1,5 +1,5 @@
 import {
-  type Candle, type Fill, type FundingEvent, type LedgerEvent, type OrderSpan, type ReplayPayload,
+  type Candle, type Fill, type FundingEvent, type LedgerEvent, type OrderSpan, type ReplayPayload, type TransferEvent,
 } from "@hy/types";
 import { sortLedger } from "./reducer.js";
 
@@ -11,6 +11,10 @@ export function encodeFills(fills: readonly Fill[]): Payload["fills"] {
 
 export function encodeFunding(funding: readonly FundingEvent[]): Payload["funding"] {
   return funding.map((f) => [f.symbol, f.at, f.amount]);
+}
+
+export function encodeTransfers(transfers: readonly TransferEvent[]): Payload["transfers"] {
+  return transfers.map((t) => [t.at, t.amount]);
 }
 
 export function encodeCandles(candles: readonly Candle[]): Payload["candles"] {
@@ -37,6 +41,7 @@ export function decodePayload(p: Payload): Decoded {
   const ledger = sortLedger([
     ...fills.map((fill): LedgerEvent => ({ kind: "fill", fill })),
     ...p.funding.map(([symbol, at, amount]): LedgerEvent => ({ kind: "funding", funding: { symbol, at, amount } })),
+    ...p.transfers.map(([at, amount]): LedgerEvent => ({ kind: "transfer", transfer: { at, amount } })),
   ]);
   return {
     ledger,

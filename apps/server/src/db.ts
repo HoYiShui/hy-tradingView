@@ -14,6 +14,7 @@ import {
   OrderRecord,
   OrderStatus,
   Qty,
+  Transfer,
   Usd,
   type CandleInterval,
 } from "@hy/types";
@@ -48,6 +49,11 @@ CREATE TABLE IF NOT EXISTS orders (
   quantity REAL NOT NULL, executed REAL NOT NULL, status TEXT NOT NULL, created_ms INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS orders_created ON orders (created_ms);
+CREATE TABLE IF NOT EXISTS transfers (
+  id TEXT PRIMARY KEY, at_ms INTEGER NOT NULL, asset TEXT NOT NULL, flow TEXT NOT NULL,
+  amount REAL, reason TEXT
+);
+CREATE INDEX IF NOT EXISTS transfers_at ON transfers (at_ms);
 CREATE TABLE IF NOT EXISTS positions (
   id TEXT PRIMARY KEY, symbol TEXT NOT NULL, opened_ms INTEGER NOT NULL, closed_ms INTEGER,
   realized REAL NOT NULL, fees REAL NOT NULL, funding REAL NOT NULL
@@ -125,6 +131,7 @@ export function openStore(path: string) {
        market = excluded.market, closed_pnl = excluded.closed_pnl`,
   );
   const upsertFunding = db.prepare(`INSERT OR REPLACE INTO funding VALUES (?, ?, ?, ?)`);
+  const upsertTransfer = db.prepare(`INSERT OR REPLACE INTO transfers VALUES (?, ?, ?, ?, ?, ?)`);
   const upsertOrder = db.prepare(`INSERT OR REPLACE INTO orders VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const upsertPosition = db.prepare(`INSERT OR REPLACE INTO positions VALUES (?, ?, ?, ?, ?, ?, ?)`);
 
@@ -244,6 +251,27 @@ export function openStore(path: string) {
     },
     latestFundingAt(): Millis | null {
       const row = db.prepare(`SELECT MAX(at_ms) AS m FROM funding`).get() as Row | undefined;
+      return row?.m == null ? null : Millis.parse(row.m);
+    },
+    saveTransfers(transfers: readonly Transfer[]): void {
+      inTransaction(() => {
+        for (const t of transfers)
+          upsertTransfer.run(t.id, t.at, t.asset, t.flow, t.status === "counted" ? t.amount : null, t.status === "excluded" ? t.reason : null);
+      });
+    },
+    allTransfers(): Transfer[] {
+      return (db.prepare(`SELECT * FROM transfers ORDER BY at_ms, id`).all() as Row[]).map((r) =>
+        Transfer.parse({
+          id: r.id,
+          at: r.at_ms,
+          asset: r.asset,
+          flow: r.flow,
+          ...(r.amount === null ? { status: "excluded", reason: r.reason } : { status: "counted", amount: r.amount }),
+        }),
+      );
+    },
+    latestTransferAt(): Millis | null {
+      const row = db.prepare(`SELECT MAX(at_ms) AS m FROM transfers`).get() as Row | undefined;
       return row?.m == null ? null : Millis.parse(row.m);
     },
     saveOrders(orders: readonly OrderRecord[]): void {

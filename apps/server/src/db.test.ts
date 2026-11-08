@@ -209,3 +209,31 @@ describe("fills schema migration", () => {
     expect(store.fills(10, null).map((f) => [f.id, f.closedPnl])).toEqual([["y", 5], ["x", 3]]);
   });
 });
+
+describe("transfers", () => {
+  const counted = (id: string, iso: string, amount: number) =>
+    ({ id, at: at(iso), asset: "USDC", flow: "deposit", status: "counted", amount: Usd.parse(amount) }) as const;
+  const unsettled = (id: string, iso: string) =>
+    ({ id, at: at(iso), asset: "USDC", flow: "deposit", status: "excluded", reason: "unsettled" }) as const;
+
+  it("round trips counted and excluded transfers in time order", () => {
+    store = openStore(":memory:");
+    store.saveTransfers([counted("b", "2026-02-01T00:00:00Z", -5), unsettled("c", "2026-03-01T00:00:00Z"), counted("a", "2026-01-01T00:00:00Z", 10)]);
+    expect(store.allTransfers().map((t) => [t.id, t.status])).toEqual([["a", "counted"], ["b", "counted"], ["c", "excluded"]]);
+    expect(store.latestTransferAt()).toBe(at("2026-03-01T00:00:00Z"));
+  });
+
+  it("saving again is idempotent and a settled transfer replaces its unsettled row", () => {
+    store = openStore(":memory:");
+    store.saveTransfers([unsettled("x", "2026-01-01T00:00:00Z"), counted("y", "2026-01-02T00:00:00Z", 3)]);
+    store.saveTransfers([unsettled("x", "2026-01-01T00:00:00Z"), counted("y", "2026-01-02T00:00:00Z", 3)]);
+    expect(store.allTransfers()).toHaveLength(2);
+    store.saveTransfers([counted("x", "2026-01-01T00:00:00Z", 7)]);
+    expect(store.allTransfers().find((t) => t.id === "x")).toMatchObject({ status: "counted", amount: 7 });
+  });
+
+  it("has no latest time before the first sync", () => {
+    store = openStore(":memory:");
+    expect(store.latestTransferAt()).toBeNull();
+  });
+});

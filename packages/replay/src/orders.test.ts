@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MarketSymbol, Millis, Price, Qty, type OrderRecord } from "@hy/types";
 import { openAt, orderSpans, UNKNOWN_CLOSE_CAP_MS } from "./orders.js";
-import { decodePayload, encodeCandles, encodeFills, encodeFunding, encodeOrders } from "./payload.js";
+import { decodePayload, encodeCandles, encodeFills, encodeFunding, encodeOrders, encodeTransfers } from "./payload.js";
 
 const BTC = MarketSymbol.parse("BTC_USDC_PERP");
 const order = (id: string, createdAt: number, status: OrderRecord["status"], side: "buy" | "sell" = "buy", kind: OrderRecord["kind"] = "limit"): OrderRecord => ({
@@ -43,10 +43,11 @@ describe("payload codec", () => {
     const d = decodePayload({
       interval: "1h", symbol: BTC, anchor: { at: Millis.parse(0), equity: 1 as never, marks: {} },
       fills: encodeFills([fill]), funding: encodeFunding([{ symbol: BTC, at: Millis.parse(20), amount: -1 as never }]),
+      transfers: encodeTransfers([{ at: Millis.parse(20), amount: 50 as never }, { at: Millis.parse(5), amount: -3 as never }]), excludedTransfers: 2,
       candles: encodeCandles([{ start: Millis.parse(0), open: Price.parse(1), high: Price.parse(2), low: Price.parse(1), close: Price.parse(2), volume: Qty.parse(3) }]),
       orders: encodeOrders(spans), candlesComplete: true,
     });
-    expect(d.ledger.map((e) => e.kind)).toEqual(["fill", "funding"]);
+    expect(d.ledger.map((e) => e.kind)).toEqual(["transfer", "fill", "funding", "transfer"]);
     expect(d.fills[0]).toMatchObject({ side: "sell", price: 5, quantity: 2, at: 20 });
     expect(d.orders[0]).toEqual(spans[0]);
     expect(d.candles[0]).toMatchObject({ start: 0, close: 2, volume: 3 });

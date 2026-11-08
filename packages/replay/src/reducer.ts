@@ -20,18 +20,32 @@ export interface Book {
   readonly realized: number;
   readonly funding: number;
   readonly fees: number;
+  readonly transfers: number;
   readonly applied: number;
 }
 
 export type Marks = Readonly<Record<string, Mark>>;
 
-export const EMPTY_BOOK: Book = { lots: {}, lastFill: {}, realized: 0, funding: 0, fees: 0, applied: 0 };
+export const EMPTY_BOOK: Book = { lots: {}, lastFill: {}, realized: 0, funding: 0, fees: 0, transfers: 0, applied: 0 };
 
 const FLAT_EPS = 1e-12;
 
-export const eventAt = (e: LedgerEvent): number => (e.kind === "fill" ? e.fill.at : e.funding.at);
+export function eventAt(e: LedgerEvent): number {
+  switch (e.kind) {
+    case "fill":
+      return e.fill.at;
+    case "funding":
+      return e.funding.at;
+    case "transfer":
+      return e.transfer.at;
+    default: {
+      const _exhaustive: never = e;
+      return _exhaustive;
+    }
+  }
+}
 
-const KIND_ORDER = { fill: 0, funding: 1 } as const;
+const KIND_ORDER = { fill: 0, funding: 1, transfer: 2 } as const;
 
 export function sortLedger(events: readonly LedgerEvent[]): LedgerEvent[] {
   return [...events].sort((a, b) => eventAt(a) - eventAt(b) || KIND_ORDER[a.kind] - KIND_ORDER[b.kind]);
@@ -55,6 +69,7 @@ function applyFill(lot: Lot, signedQty: number, price: number): { lot: Lot; real
 
 export function apply(book: Book, event: LedgerEvent): Book {
   const applied = book.applied + 1;
+  if (event.kind === "transfer") return { ...book, applied, transfers: book.transfers + event.transfer.amount };
   if (event.kind === "funding") {
     const { symbol, amount } = event.funding;
     const lot = book.lots[symbol];
@@ -78,6 +93,7 @@ export function apply(book: Book, event: LedgerEvent): Book {
     realized: book.realized + next.realized,
     funding: book.funding,
     fees: book.fees + fill.fee,
+    transfers: book.transfers,
     applied,
   };
 }
@@ -105,7 +121,7 @@ export function unrealized(book: Book, marks: Marks): number {
 export function deriveBase(anchor: ReplayAnchor, end: Book): number {
   const marks: Record<string, Mark> = {};
   for (const [symbol, price] of Object.entries(anchor.marks)) marks[symbol] = { price, at: anchor.at };
-  return anchor.equity - netPnl(end) - unrealized(end, marks);
+  return anchor.equity - netPnl(end) - end.transfers - unrealized(end, marks);
 }
 
 export function toPositions(book: Book, marks: Marks): Position[] {
@@ -135,7 +151,7 @@ export function snapshotAt(input: { book: Book; at: number; marks: Marks; base: 
   const gross = positions.reduce((s, p) => s + p.notional, 0);
   const net = positions.reduce((s, p) => s + (p.direction === "long" ? p.notional : -p.notional), 0);
   const openPnl = positions.reduce((s, p) => s + p.openPnl, 0);
-  const equity = base + netPnl(book) + openPnl;
+  const equity = base + netPnl(book) + book.transfers + openPnl;
   return {
     at: Millis.parse(at),
     equity: Usd.parse(equity),
@@ -146,6 +162,6 @@ export function snapshotAt(input: { book: Book; at: number; marks: Marks; base: 
       leverage: equity > 0 ? gross / equity : null,
       openPnl: Usd.parse(openPnl),
     },
-    totals: { realized: Usd.parse(book.realized), funding: Usd.parse(book.funding), fees: Usd.parse(book.fees) },
+    totals: { realized: Usd.parse(book.realized), funding: Usd.parse(book.funding), fees: Usd.parse(book.fees), transfers: Usd.parse(book.transfers) },
   };
 }

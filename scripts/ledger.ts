@@ -3,7 +3,7 @@ import { MarketSymbol, Millis, Price, Qty, Usd, type LedgerEvent } from "../pack
 
 type Row = Record<string, string | number | null>;
 
-export function loadLedger(db: DatabaseSync): { fills: LedgerEvent[]; funding: LedgerEvent[] } {
+export function loadLedger(db: DatabaseSync): { fills: LedgerEvent[]; funding: LedgerEvent[]; transfers: LedgerEvent[] } {
   const fills = (db.prepare("SELECT * FROM fills ORDER BY at_ms, rowid").all() as Row[]).map((r): LedgerEvent => ({
     kind: "fill",
     fill: {
@@ -19,5 +19,9 @@ export function loadLedger(db: DatabaseSync): { fills: LedgerEvent[]; funding: L
     kind: "funding",
     funding: { symbol: MarketSymbol.parse(r["symbol"]), at: Millis.parse(r["at_ms"]), amount: Usd.parse(r["amount"]) },
   }));
-  return { fills, funding };
+  const transfers = (db.prepare("SELECT at_ms, amount FROM transfers WHERE amount IS NOT NULL").all() as Row[]).map((r): LedgerEvent => ({
+    kind: "transfer",
+    transfer: { at: Millis.parse(r["at_ms"]), amount: Usd.parse(r["amount"]) },
+  }));
+  return { fills, funding, transfers };
 }

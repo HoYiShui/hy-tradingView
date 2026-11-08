@@ -16,6 +16,8 @@ const payload: ReplayPayload = {
     ["2", BTC, -1, px(120), Qty.parse(1), Usd.parse(1), Millis.parse(5 * H)],
   ],
   funding: [[BTC, Millis.parse(6 * H), Usd.parse(-0.5)]],
+  transfers: [],
+  excludedTransfers: 0,
   candles: Array.from({ length: 11 }, (_, i) => candle(i, 100 + i * 3)),
   orders: [[BTC, 1, 0, px(99), Qty.parse(1), Millis.parse(H), Millis.parse(2 * H), 0]],
   candlesComplete: true,

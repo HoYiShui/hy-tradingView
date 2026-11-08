@@ -1,18 +1,18 @@
 import { DatabaseSync } from "node:sqlite";
 import { resolve } from "node:path";
-import { buildTimeline, reduceLedger, seek, snapshotAt, sortLedger, START } from "../packages/replay/src/index.js";
+import { buildTimeline, eventAt, reduceLedger, seek, snapshotAt, sortLedger, START } from "../packages/replay/src/index.js";
 import { repoRoot } from "../apps/server/src/env.js";
 import { loadAccount } from "./account.js";
 import { loadLedger } from "./ledger.js";
 
 const db = new DatabaseSync(resolve(repoRoot, loadAccount(process.argv[2]).account.dbPath), { readOnly: true });
 const ledger = loadLedger(db);
-const events = sortLedger([...ledger.fills, ...ledger.funding]);
+const events = sortLedger([...ledger.fills, ...ledger.funding, ...ledger.transfers]);
 const first = events[0];
 const last = events.at(-1);
 if (!first || !last) throw new Error("no events");
-const t0 = first.kind === "fill" ? first.fill.at : first.funding.at;
-const t1 = last.kind === "fill" ? last.fill.at : last.funding.at;
+const t0 = eventAt(first);
+const t1 = eventAt(last);
 const stats = (xs: number[]) => {
   const s = [...xs].sort((a, b) => a - b);
   return `median ${(s[s.length >> 1] ?? 0).toFixed(4)} ms, p99 ${(s[Math.floor(s.length * 0.99)] ?? 0).toFixed(4)} ms, max ${(s.at(-1) ?? 0).toFixed(3)} ms`;
@@ -56,7 +56,7 @@ const naive: number[] = [];
 for (let i = 0; i < 20; i++) {
   const at = t0 + (t1 - t0) * rnd();
   const s = performance.now();
-  reduceLedger(events.filter((e) => (e.kind === "fill" ? e.fill.at : e.funding.at) <= at));
+  reduceLedger(events.filter((e) => eventAt(e) <= at));
   naive.push(performance.now() - s);
 }
 console.log(`naive recompute from zero per frame, 20 samples: ${stats(naive)}`);

@@ -184,9 +184,29 @@ export type EquityPoint = z.infer<typeof EquityPoint>;
 export const FundingEvent = z.object({ symbol: MarketSymbol, at: Millis, amount: Usd });
 export type FundingEvent = z.infer<typeof FundingEvent>;
 
+export const TRANSFER_FLOWS = ["deposit", "withdrawal", "transfer", "vault", "reward"] as const;
+export const TransferFlow = z.enum(TRANSFER_FLOWS);
+export type TransferFlow = z.infer<typeof TransferFlow>;
+
+export const TRANSFER_EXCLUSIONS = ["unpriced", "unsettled", "unclassified"] as const;
+export const TransferExclusion = z.enum(TRANSFER_EXCLUSIONS);
+export type TransferExclusion = z.infer<typeof TransferExclusion>;
+
+const TransferBase = { id: z.string().min(1), at: Millis, asset: z.string().min(1), flow: TransferFlow };
+
+export const Transfer = z.discriminatedUnion("status", [
+  z.object({ ...TransferBase, status: z.literal("counted"), amount: Usd }),
+  z.object({ ...TransferBase, status: z.literal("excluded"), reason: TransferExclusion }),
+]);
+export type Transfer = z.infer<typeof Transfer>;
+
+export const TransferEvent = z.object({ at: Millis, amount: Usd });
+export type TransferEvent = z.infer<typeof TransferEvent>;
+
 export const LedgerEvent = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("fill"), fill: Fill }),
   z.object({ kind: z.literal("funding"), funding: FundingEvent }),
+  z.object({ kind: z.literal("transfer"), transfer: TransferEvent }),
 ]);
 export type LedgerEvent = z.infer<typeof LedgerEvent>;
 
@@ -197,7 +217,7 @@ export const ReplayAnchor = z.object({
 });
 export type ReplayAnchor = z.infer<typeof ReplayAnchor>;
 
-export const ReplayTotals = z.object({ realized: Usd, funding: Usd, fees: Usd });
+export const ReplayTotals = z.object({ realized: Usd, funding: Usd, fees: Usd, transfers: Usd });
 export type ReplayTotals = z.infer<typeof ReplayTotals>;
 
 export const ReplayState = z.object({
@@ -244,6 +264,8 @@ export const ReplayPayload = z.object({
   anchor: ReplayAnchor,
   fills: z.array(z.tuple([z.string(), MarketSymbol, z.number(), Price, Qty, Usd, Millis])),
   funding: z.array(z.tuple([MarketSymbol, Millis, Usd])),
+  transfers: z.array(z.tuple([Millis, Usd])),
+  excludedTransfers: z.number().int().nonnegative(),
   candles: z.array(z.tuple([Millis, Price, Price, Price, Price, Qty])),
   orders: z.array(z.tuple([MarketSymbol, z.number(), z.number(), Price, Qty, Millis, Millis, z.number()])),
   candlesComplete: z.boolean(),
