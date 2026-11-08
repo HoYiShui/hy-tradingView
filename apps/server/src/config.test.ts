@@ -44,7 +44,7 @@ describe("loadConfig", () => {
 
   it("looks accounts up by id and names the configured ones on a miss", () => {
     const c = loadConfig(valid);
-    expect(findAccount(c, "live").credentials.apiKey).toBe("key");
+    expect(findAccount(c, "live").credentials).toMatchObject({ exchange: "backpack", apiKey: "key" });
     expect(() => findAccount(c, "nope")).toThrow("live, replaytest");
   });
 
@@ -89,7 +89,57 @@ describe("loadConfig", () => {
   it("parses .env.example", () => {
     const example = parseEnv(readFileSync(new URL("../../../.env.example", import.meta.url), "utf8"));
     const c = loadConfig(example);
-    expect(c.accounts.map((a) => a.id)).toEqual(["live", "sandbox"]);
+    expect(c.accounts.map((a) => a.id)).toEqual(["live", "sandbox", "perp"]);
     expect(c.accounts.some((a) => a.surfaces.includes("dashboard"))).toBe(true);
+    expect(findAccount(c, "perp").credentials).toMatchObject({ exchange: "hyperliquid", address: "0x0000000000000000000000000000000000000000" });
+  });
+});
+
+describe("hyperliquid accounts", () => {
+  const ADDRESS = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed";
+  const withHl = (over: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv => ({
+    ...valid,
+    ACCOUNTS: "live,hl",
+    ACCOUNT_HL_EXCHANGE: "hyperliquid",
+    ACCOUNT_HL_LABEL: "Hyperliquid",
+    ACCOUNT_HL_ADDRESS: ADDRESS,
+    ACCOUNT_HL_SURFACES: "dashboard,replay",
+    ...over,
+  });
+
+  it("builds a hyperliquid account from an address alone beside a backpack account", () => {
+    const c = loadConfig(withHl());
+    expect(findAccount(c, "hl").credentials).toEqual({ exchange: "hyperliquid", apiUrl: "https://api.hyperliquid.xyz", address: ADDRESS });
+    expect(findAccount(c, "hl").dbPath).toBe("data/hl.db");
+    expect(findAccount(c, "live").credentials.exchange).toBe("backpack");
+  });
+
+  it("accepts an all lowercase address", () => {
+    expect(message(withHl({ ACCOUNT_HL_ADDRESS: ADDRESS.toLowerCase() }))).toBe("");
+  });
+
+  it("names a missing address", () => {
+    expect(message(withHl({ ACCOUNT_HL_ADDRESS: undefined }))).toContain("ACCOUNT_HL_ADDRESS");
+  });
+
+  it("rejects a bad format and a bad checksum without echoing the value", () => {
+    const badChecksum = ADDRESS.replace("5aAe", "5aae");
+    for (const bad of ["0x123", "not-an-address", ADDRESS.slice(2), badChecksum]) {
+      const m = message(withHl({ ACCOUNT_HL_ADDRESS: bad }));
+      expect(m).toContain("ACCOUNT_HL_ADDRESS");
+      expect(m).not.toContain(bad);
+    }
+  });
+
+  it("rejects a private key variable by name and backpack credentials on a hyperliquid account", () => {
+    const key = "0x" + "ab".repeat(32);
+    const m = message(withHl({ ACCOUNT_HL_PRIVATE_KEY: key }));
+    expect(m).toContain("ACCOUNT_HL_PRIVATE_KEY");
+    expect(m).not.toContain(key);
+    expect(message(withHl({ ACCOUNT_HL_API_KEY: "k" }))).toContain("ACCOUNT_HL_API_KEY");
+  });
+
+  it("rejects an address on a backpack account", () => {
+    expect(message({ ...valid, ACCOUNT_LIVE_ADDRESS: ADDRESS })).toContain("ACCOUNT_LIVE_ADDRESS");
   });
 });

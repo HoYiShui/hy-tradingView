@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Surface } from "@hy/types";
+import { Address } from "./hyperliquid/address.js";
 
 const Id = z.string().regex(/^[a-z][a-z0-9]{0,23}$/);
 
@@ -11,14 +12,20 @@ const Surfaces = z
 
 const Shared = { LABEL: z.string().min(1), SURFACES: Surfaces };
 
-const BackpackEnv = z.object({
+const BackpackEnv = z.strictObject({
   EXCHANGE: z.literal("backpack"),
   API_KEY: z.string().min(1),
   API_SECRET: z.string().min(1),
   ...Shared,
 });
 
-const AccountEnv = z.discriminatedUnion("EXCHANGE", [BackpackEnv]);
+const HyperliquidEnv = z.strictObject({
+  EXCHANGE: z.literal("hyperliquid"),
+  ADDRESS: Address,
+  ...Shared,
+});
+
+const AccountEnv = z.discriminatedUnion("EXCHANGE", [BackpackEnv, HyperliquidEnv]);
 
 const ServerEnv = z.object({
   ACCOUNTS: z
@@ -26,10 +33,13 @@ const ServerEnv = z.object({
     .transform((s) => s.split(",").map((x) => x.trim()))
     .pipe(z.array(Id).min(1)),
   BACKPACK_API_URL: z.url().default("https://api.backpack.exchange"),
+  HYPERLIQUID_API_URL: z.url().default("https://api.hyperliquid.xyz"),
   PORT: z.coerce.number().int().positive().default(8787),
 });
 
-export type ExchangeCredentials = { exchange: "backpack"; apiUrl: string; apiKey: string; apiSecret: string };
+export type ExchangeCredentials =
+  | { exchange: "backpack"; apiUrl: string; apiKey: string; apiSecret: string }
+  | { exchange: "hyperliquid"; apiUrl: string; address: Address };
 
 export type AccountConfig = {
   id: string;
@@ -64,12 +74,15 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
   if (!ids.success) return fail(bad);
   if (new Set(ids.data).size !== ids.data.length) bad.push("ACCOUNTS");
 
-  const backpackUrl = server.success ? server.data.BACKPACK_API_URL : "";
+  const urls = server.success ? server.data : { BACKPACK_API_URL: "", HYPERLIQUID_API_URL: "" };
   const accounts: AccountConfig[] = [];
   for (const id of new Set(ids.data)) {
     const parsed = AccountEnv.safeParse(accountEnv(env, id));
     if (!parsed.success) {
-      for (const issue of parsed.error.issues) bad.push(`ACCOUNT_${id.toUpperCase()}_${String(issue.path[0] ?? "EXCHANGE")}`);
+      for (const issue of parsed.error.issues) {
+        const names = issue.code === "unrecognized_keys" ? issue.keys : [String(issue.path[0] ?? "EXCHANGE")];
+        bad.push(...names.map((n) => `ACCOUNT_${id.toUpperCase()}_${n}`));
+      }
       continue;
     }
     const e = parsed.data;
@@ -78,7 +91,10 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
       label: e.LABEL,
       surfaces: e.SURFACES,
       dbPath: `data/${id}.db`,
-      credentials: { exchange: e.EXCHANGE, apiUrl: backpackUrl, apiKey: e.API_KEY, apiSecret: e.API_SECRET },
+      credentials:
+        e.EXCHANGE === "backpack"
+          ? { exchange: "backpack", apiUrl: urls.BACKPACK_API_URL, apiKey: e.API_KEY, apiSecret: e.API_SECRET }
+          : { exchange: "hyperliquid", apiUrl: urls.HYPERLIQUID_API_URL, address: e.ADDRESS },
     });
   }
   if (bad.length === 0 && !accounts.some((a) => hasSurface(a, "dashboard"))) bad.push("ACCOUNTS");
