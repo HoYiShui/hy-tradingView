@@ -237,3 +237,17 @@ describe("transfers", () => {
     expect(store.latestTransferAt()).toBeNull();
   });
 });
+
+describe("mostTradedSymbol", () => {
+  const f = (id: string, sym: string, market: "perp" | "spot") => ({
+    id, orderId: "o", symbol: MarketSymbol.parse(sym), side: "buy" as const, price: 1 as never, quantity: 1 as never, fee: 0 as never,
+    liquidity: "maker" as const, at: Millis.parse(1), market, closedPnl: null,
+  });
+
+  it("returns the perp symbol with the most fills and null for an empty database", () => {
+    store = openStore(":memory:");
+    expect(store.mostTradedSymbol()).toBeNull();
+    store.saveFills([f("1", "A_USDC_PERP", "perp"), f("2", "B_USDC_PERP", "perp"), f("3", "B_USDC_PERP", "perp"), f("4", "C_USDC", "spot"), f("5", "C_USDC", "spot"), f("6", "C_USDC", "spot")]);
+    expect(store.mostTradedSymbol()).toBe("B_USDC_PERP");
+  });
+});

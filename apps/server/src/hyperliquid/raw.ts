@@ -136,3 +136,5 @@ export const RawLedgerDeltas = {
   vaultDistribution: z.object({ usdc: decimal }),
   rewardsClaim: z.object({ amount: decimal, token: z.string() }),
 } as const;
+
+export const RawMeta = z.object({ universe: z.array(z.object({ name: z.string(), isDelisted: z.boolean().optional() })) });

@@ -21,6 +21,7 @@ const payload: ReplayPayload = {
   candles: Array.from({ length: 11 }, (_, i) => candle(i, 100 + i * 3)),
   orders: [[BTC, 1, 0, px(99), Qty.parse(1), Millis.parse(H), Millis.parse(2 * H), 0]],
   candlesComplete: true,
+  chartError: null,
 };
 
 describe("replay model", () => {

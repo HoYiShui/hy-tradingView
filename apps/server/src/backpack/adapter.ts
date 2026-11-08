@@ -1,6 +1,6 @@
 import { MarketSymbol, Millis, type OrderRecord } from "@hy/types";
 import type { ExchangeCapabilities, ExchangeReader } from "../exchange.js";
-import type { BackpackClient } from "./client.js";
+import { BackpackHttpError, type BackpackClient } from "./client.js";
 import { buildSnapshot } from "./snapshot.js";
 import {
   parseAccountParts,
@@ -16,7 +16,7 @@ import {
 } from "./parse.js";
 
 const ACCOUNT_TTL_MS = 60_000;
-const CHART_SYMBOL = MarketSymbol.parse("BTC_USDC_PERP");
+const DEFAULT_CHART_SYMBOL = MarketSymbol.parse("BTC_USDC_PERP");
 const PAGE = 200;
 const PAGE_PAUSE_MS = 500;
 
@@ -55,7 +55,16 @@ export function createBackpackReader(client: BackpackClient, now: () => number =
 
   return {
     exchange: "backpack",
-    chartSymbol: CHART_SYMBOL,
+    defaultChartSymbol: DEFAULT_CHART_SYMBOL,
+    async marketExists(symbol) {
+      try {
+        await client.publicGet("/api/v1/market", { symbol });
+        return true;
+      } catch (e) {
+        if (e instanceof BackpackHttpError && e.status === 400 && /market not found/i.test(e.message)) return false;
+        throw e;
+      }
+    },
     capabilities: BACKPACK_CAPABILITIES,
     async fetchLive() {
       const [acc, collateral, positions, orders] = await Promise.all([

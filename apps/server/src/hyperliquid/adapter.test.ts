@@ -6,7 +6,7 @@ import perpDexs from "../../../../scripts/samples-hyperliquid/perpDexs.json";
 import spotState from "../../../../scripts/samples-hyperliquid/spotClearinghouseState.json";
 import userFills from "../../../../scripts/samples-hyperliquid/userFills.json";
 import variants from "../../../../scripts/samples-hyperliquid/variants.json";
-import { Millis } from "@hy/types";
+import { MarketSymbol, Millis } from "@hy/types";
 import { Address } from "./address.js";
 import { createHyperliquidReader, HYPERLIQUID_CAPABILITIES } from "./adapter.js";
 import type { HyperliquidClient, InfoRequest } from "./client.js";
@@ -41,7 +41,7 @@ describe("hyperliquid reader", () => {
   it("charts BTC and declares the exchange history limits", () => {
     const r = reader(fakeClient().client);
     expect(r.exchange).toBe("hyperliquid");
-    expect(r.chartSymbol).toBe("BTC");
+    expect(r.defaultChartSymbol).toBe("BTC");
     expect(HYPERLIQUID_CAPABILITIES.history).toEqual({ candleDepthBars: 5000, fillDepth: 10_000 });
     expect(HYPERLIQUID_CAPABILITIES.intervals).toContain("15m");
   });
@@ -105,10 +105,22 @@ describe("hyperliquid reader", () => {
     expect(calls).toEqual([{ type: "userNonFundingLedgerUpdates", user: ADDRESS, startTime: 590 }]);
   });
 
+  it("checks a chart coin against the listed perps of its own dex and ignores delisted ones", async () => {
+    const meta = (r: InfoRequest) =>
+      r.type === "meta" && r.dex === "xyz"
+        ? { universe: [{ name: "xyz:GOLD" }] }
+        : { universe: [{ name: "BTC" }, { name: "SOL" }, { name: "OLD", isDelisted: true }] };
+    const { client, calls } = fakeClient({ meta });
+    const r = reader(client);
+    const exists = (s: string) => r.marketExists(MarketSymbol.parse(s));
+    expect([await exists("SOL"), await exists("OLD"), await exists("NOPE"), await exists("xyz:GOLD"), await exists("xyz:NOPE")]).toEqual([true, false, false, true, false]);
+    expect(calls.filter((c) => c.type === "meta" && c.dex === "xyz")).toHaveLength(2);
+  });
+
   it("returns candles oldest first", async () => {
     const shuffled = [...candles].reverse();
     const { client } = fakeClient({ candleSnapshot: () => shuffled });
-    const out = await reader(client).fetchCandles({ symbol: reader(client).chartSymbol, interval: "1h", from: Millis.parse(0), to: Millis.parse(1) });
+    const out = await reader(client).fetchCandles({ symbol: reader(client).defaultChartSymbol, interval: "1h", from: Millis.parse(0), to: Millis.parse(1) });
     expect(out.map((c) => c.start)).toEqual([...out.map((c) => c.start)].sort((a, b) => a - b));
   });
 

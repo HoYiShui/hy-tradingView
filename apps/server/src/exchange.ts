@@ -22,8 +22,9 @@ export type ExchangeCapabilities = {
 
 export interface ExchangeReader {
   readonly exchange: Exchange;
-  readonly chartSymbol: MarketSymbol;
+  readonly defaultChartSymbol: MarketSymbol;
   readonly capabilities: ExchangeCapabilities;
+  marketExists(symbol: MarketSymbol): Promise<boolean>;
   fetchLive(): Promise<AccountSnapshot>;
   fetchFills(input: { from: Millis | null }): Promise<Fill[]>;
   fetchFunding(input: { from: Millis | null }): Promise<FundingPayment[]>;

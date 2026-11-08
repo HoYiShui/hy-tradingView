@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import type { AccountInfo, Surface } from "@hy/types";
 import { hasSurface, type AccountConfig } from "./config.js";
+import { createChartGuard, resolveChartSymbol, type ChartGuard } from "./chart.js";
 import { equityBucket, openStore, type Store } from "./db.js";
 import { repoRoot } from "./env.js";
 import type { ExchangeCapabilities, ExchangeReader } from "./exchange.js";
@@ -14,9 +15,10 @@ export type AccountContext = {
   store: Store;
   feed: ReturnType<typeof createFeed>;
   candles: ReturnType<typeof createCandleService>;
+  chart: ChartGuard;
 };
 
-export type ServedAccount = Pick<AccountContext, "info" | "store" | "feed" | "candles">;
+export type ServedAccount = Pick<AccountContext, "info" | "store" | "feed" | "candles" | "chart">;
 
 export type Registry = readonly ServedAccount[];
 
@@ -69,20 +71,22 @@ export function createAccountContext(account: AccountConfig, deps: RegistryDeps)
   const reader = deps.readerFor(account);
   const store = deps.storeFor(account);
   const log = (msg: string) => deps.log(`${account.id}: ${msg}`);
+  const chartSymbol = resolveChartSymbol({ choice: account.chart, store, fallback: reader.defaultChartSymbol });
   return {
     info: {
       id: account.id,
       label: account.label,
       exchange: reader.exchange,
       surfaces: account.surfaces,
-      chartSymbol: reader.chartSymbol,
+      chartSymbol,
       intervals: [...reader.capabilities.intervals],
       history: reader.capabilities.history,
     },
     reader,
     store,
     feed: createFeed(reader, { pollMs: planFor(account.surfaces, reader.capabilities).pollMs, log }),
-    candles: createCandleService({ reader, store, symbol: reader.chartSymbol, log }),
+    candles: createCandleService({ reader, store, symbol: chartSymbol, log }),
+    chart: createChartGuard({ reader, symbol: chartSymbol, log }),
   };
 }
 
@@ -121,5 +125,6 @@ export function startAccount(ctx: AccountContext, log: (msg: string) => void): v
       });
     });
   }
+  void ctx.chart.check();
   ctx.feed.start();
 }

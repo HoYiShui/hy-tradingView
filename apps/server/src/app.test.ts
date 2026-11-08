@@ -33,7 +33,8 @@ function fakeReader(input: { exchange: Exchange; chartSymbol: string; equity: nu
   const chartSymbol = sym(input.chartSymbol);
   const reader: ExchangeReader = {
     exchange: input.exchange,
-    chartSymbol,
+    defaultChartSymbol: chartSymbol,
+    marketExists: async (symbol) => (calls.push(`market ${symbol}`), !String(symbol).startsWith("NOPE")),
     capabilities: CAPABILITIES,
     fetchLive: async () => (calls.push("live"), snapshot(input.equity)),
     fetchFills: async () => (calls.push("fills"), input.fillIds.map((id, i) => fill(id, chartSymbol, NOW - (100 - i) * 1000))),
@@ -55,8 +56,8 @@ function fakeReader(input: { exchange: Exchange; chartSymbol: string; equity: nu
   return { reader, calls };
 }
 
-const config = (id: string, surfaces: Surface[]): AccountConfig => ({
-  id, label: id.toUpperCase(), surfaces, dbPath: ":memory:",
+const config = (id: string, surfaces: Surface[], chart: AccountConfig["chart"] = { kind: "default" }): AccountConfig => ({
+  id, label: id.toUpperCase(), surfaces, dbPath: ":memory:", chart,
   credentials: { exchange: "backpack", apiUrl: "http://unused.invalid", apiKey: "unused", apiSecret: "unused" },
 });
 
@@ -138,6 +139,34 @@ describe("per-account routing", () => {
     const other = await (await get("/api/replay?account=hl&interval=1h")).json();
     expect(other.symbol).toBe("BTC-PERP");
     expect(decodePayload(other).fills.map((f) => f.id).sort()).toEqual(["H1", "H2", "H3"]);
+  });
+
+  it("fails only the chart of an account whose chart market does not exist, with a clear message", async () => {
+    const bad = { config: config("bad", ["dashboard", "replay"], { kind: "market", symbol: sym("NOPE_USDC_PERP") }), reader: fakeReader({ exchange: "backpack", chartSymbol: "BTC_USDC_PERP", equity: 5, fillIds: ["B1"] }) };
+    const get = await boot([live(), bad]);
+    const list = (await (await get("/api/accounts")).json()) as AccountInfo[];
+    expect(list.find((a) => a.id === "bad")?.chartSymbol).toBe("NOPE_USDC_PERP");
+    const candles = await get("/api/accounts/bad/candles?interval=1h");
+    expect(candles.status).toBe(404);
+    expect((await candles.json()).error).toContain("NOPE_USDC_PERP");
+    const replay = await (await get("/api/replay?account=bad&interval=1h")).json();
+    expect(replay.chartError).toContain("NOPE_USDC_PERP");
+    expect(replay.candles).toEqual([]);
+    expect(replay.anchor.equity).toBe(5);
+    expect(bad.reader.calls).not.toContain("candles");
+    expect((await get("/api/accounts/bad/snapshot")).status).toBe(200);
+    expect((await get("/api/accounts/live/candles?interval=1h")).status).toBe(200);
+  });
+
+  it("charts the most traded market of an account and fetches its candles", async () => {
+    const store = openStore(":memory:");
+    store.saveFills(["S1", "S2"].map((id) => fill(id, sym("SOL_USDC_PERP"), NOW - 5000)));
+    const reader = fakeReader({ exchange: "backpack", chartSymbol: "BTC_USDC_PERP", equity: 9, fillIds: [] });
+    const context = createAccountContext(config("most", ["replay"], { kind: "most-traded" }), { readerFor: () => reader.reader, storeFor: () => store, log: () => undefined });
+    running.push(context);
+    expect(context.info.chartSymbol).toBe("SOL_USDC_PERP");
+    expect(await context.chart.check()).toBeNull();
+    expect(reader.calls).toContain("market SOL_USDC_PERP");
   });
 
   it("defaults /api/replay to the first replay account", async () => {

@@ -15,6 +15,7 @@ export type InfoRequest =
   | { type: "allMids"; dex?: string }
   | { type: "perpDexs" }
   | { type: "spotMeta" }
+  | { type: "meta"; dex?: string }
   | { type: "metaAndAssetCtxs"; dex?: string };
 
 export class HyperliquidHttpError extends Error {

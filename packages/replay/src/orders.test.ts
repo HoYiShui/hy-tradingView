@@ -45,7 +45,7 @@ describe("payload codec", () => {
       fills: encodeFills([fill]), funding: encodeFunding([{ symbol: BTC, at: Millis.parse(20), amount: -1 as never }]),
       transfers: encodeTransfers([{ at: Millis.parse(20), amount: 50 as never }, { at: Millis.parse(5), amount: -3 as never }]), excludedTransfers: 2,
       candles: encodeCandles([{ start: Millis.parse(0), open: Price.parse(1), high: Price.parse(2), low: Price.parse(1), close: Price.parse(2), volume: Qty.parse(3) }]),
-      orders: encodeOrders(spans), candlesComplete: true,
+      orders: encodeOrders(spans), candlesComplete: true, chartError: null,
     });
     expect(d.ledger.map((e) => e.kind)).toEqual(["transfer", "fill", "funding", "transfer"]);
     expect(d.fills[0]).toMatchObject({ side: "sell", price: 5, quantity: 2, at: 20 });

@@ -269,6 +269,7 @@ export const ReplayPayload = z.object({
   candles: z.array(z.tuple([Millis, Price, Price, Price, Price, Qty])),
   orders: z.array(z.tuple([MarketSymbol, z.number(), z.number(), Price, Qty, Millis, Millis, z.number()])),
   candlesComplete: z.boolean(),
+  chartError: z.string().nullable(),
 });
 export type ReplayPayload = z.infer<typeof ReplayPayload>;
 

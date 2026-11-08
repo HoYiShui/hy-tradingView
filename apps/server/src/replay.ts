@@ -4,8 +4,8 @@ import type { Store } from "./db.js";
 
 const MAX_CANDLES = 120_000;
 
-export function buildReplayPayload(input: { store: Store; snapshot: AccountSnapshot; interval: CandleInterval; symbol: MarketSymbol }): ReplayPayload {
-  const { store, snapshot, interval, symbol } = input;
+export function buildReplayPayload(input: { store: Store; snapshot: AccountSnapshot; interval: CandleInterval; symbol: MarketSymbol; chartError: string | null }): ReplayPayload {
+  const { store, snapshot, interval, symbol, chartError } = input;
   const at = snapshot.asOf;
   const fills = store.allFills().filter((f) => f.market === "perp" && f.at <= at);
   const funding = store.allFunding().filter((f) => f.at <= at);
@@ -13,7 +13,7 @@ export function buildReplayPayload(input: { store: Store; snapshot: AccountSnaps
   const firstChartFill = store.earliestFillAt(symbol) ?? at;
   const step = INTERVAL_MS[interval];
   const from = Millis.parse(Math.floor(firstChartFill / step) * step - step);
-  const candles = store.candles({ symbol, interval, since: from, limit: MAX_CANDLES });
+  const candles = chartError === null ? store.candles({ symbol, interval, since: from, limit: MAX_CANDLES }) : [];
   const marks = Object.fromEntries(snapshot.positions.map((p) => [p.symbol, Price.parse(p.markPrice)]));
   return {
     interval,
@@ -26,5 +26,6 @@ export function buildReplayPayload(input: { store: Store; snapshot: AccountSnaps
     candles: encodeCandles(candles),
     orders: encodeOrders(orderSpans({ orders: store.orders(), lastFillAt: store.lastFillByOrder(), now: at })),
     candlesComplete: (candles[0]?.start ?? Infinity) <= firstChartFill,
+    chartError,
   };
 }

@@ -92,6 +92,7 @@ describe("loadConfig", () => {
     expect(c.accounts.map((a) => a.id)).toEqual(["live", "sandbox", "perp"]);
     expect(c.accounts.some((a) => a.surfaces.includes("dashboard"))).toBe(true);
     expect(findAccount(c, "perp").credentials).toMatchObject({ exchange: "hyperliquid", address: "0x0000000000000000000000000000000000000000" });
+    expect(c.accounts.map((a) => a.chart)).toEqual([{ kind: "default" }, { kind: "market", symbol: "SOL_USDC_PERP" }, { kind: "most-traded" }]);
   });
 });
 
@@ -141,5 +142,54 @@ describe("hyperliquid accounts", () => {
 
   it("rejects an address on a backpack account", () => {
     expect(message({ ...valid, ACCOUNT_LIVE_ADDRESS: ADDRESS })).toContain("ACCOUNT_LIVE_ADDRESS");
+  });
+});
+
+describe("chart market", () => {
+  const withHl = (chart: string | undefined): NodeJS.ProcessEnv => ({
+    ...valid,
+    ACCOUNTS: "live,hl",
+    ACCOUNT_HL_EXCHANGE: "hyperliquid",
+    ACCOUNT_HL_LABEL: "Hyperliquid",
+    ACCOUNT_HL_ADDRESS: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
+    ACCOUNT_HL_SURFACES: "replay",
+    ACCOUNT_HL_CHART: chart,
+  });
+  const chartOf = (env: NodeJS.ProcessEnv, id: string) => findAccount(loadConfig(env), id).chart;
+
+  it("defaults to the adapter's market when unset", () => {
+    expect(chartOf(valid, "live")).toEqual({ kind: "default" });
+    expect(chartOf(withHl(undefined), "hl")).toEqual({ kind: "default" });
+  });
+
+  it("accepts most-traded on either exchange", () => {
+    expect(chartOf({ ...valid, ACCOUNT_LIVE_CHART: "most-traded" }, "live")).toEqual({ kind: "most-traded" });
+    expect(chartOf(withHl("most-traded"), "hl")).toEqual({ kind: "most-traded" });
+  });
+
+  it("accepts a market in each exchange's own naming", () => {
+    expect(chartOf({ ...valid, ACCOUNT_LIVE_CHART: "SOL_USDC_PERP" }, "live")).toEqual({ kind: "market", symbol: "SOL_USDC_PERP" });
+    expect(chartOf(withHl("SOL"), "hl")).toEqual({ kind: "market", symbol: "SOL" });
+    expect(chartOf(withHl("xyz:GOLD"), "hl")).toEqual({ kind: "market", symbol: "xyz:GOLD" });
+    expect(chartOf(withHl("kPEPE"), "hl")).toEqual({ kind: "market", symbol: "kPEPE" });
+  });
+
+  it("rejects the other exchange's naming, spot markets, blanks and junk, naming the variable but not the value", () => {
+    const cases: [NodeJS.ProcessEnv, string][] = [
+      [{ ...valid, ACCOUNT_LIVE_CHART: "SOL" }, "ACCOUNT_LIVE_CHART"],
+      [{ ...valid, ACCOUNT_LIVE_CHART: "SOL_USDC" }, "ACCOUNT_LIVE_CHART"],
+      [{ ...valid, ACCOUNT_LIVE_CHART: "sol_usdc_perp" }, "ACCOUNT_LIVE_CHART"],
+      [{ ...valid, ACCOUNT_LIVE_CHART: "most-traded " }, "ACCOUNT_LIVE_CHART"],
+      [{ ...valid, ACCOUNT_LIVE_CHART: "" }, "ACCOUNT_LIVE_CHART"],
+      [withHl("SOL_USDC_PERP"), "ACCOUNT_HL_CHART"],
+      [withHl("@107"), "ACCOUNT_HL_CHART"],
+      [withHl("BTC/USDC"), "ACCOUNT_HL_CHART"],
+      [withHl("Most-Traded"), "ACCOUNT_HL_CHART"],
+    ];
+    for (const [env, name] of cases) {
+      const m = message(env);
+      expect(m).toContain(name);
+      for (const v of [env["ACCOUNT_LIVE_CHART"], env["ACCOUNT_HL_CHART"]]) if (v) expect(m).not.toContain(v);
+    }
   });
 });

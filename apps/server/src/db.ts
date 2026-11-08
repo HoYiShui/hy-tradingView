@@ -223,6 +223,12 @@ export function openStore(path: string) {
         for (const r of merged) insert.run(symbol, interval, r.from, r.to);
       });
     },
+    mostTradedSymbol(): MarketSymbol | null {
+      const row = db
+        .prepare(`SELECT symbol FROM fills WHERE market = 'perp' GROUP BY symbol ORDER BY COUNT(*) DESC, symbol LIMIT 1`)
+        .get() as Row | undefined;
+      return row === undefined ? null : MarketSymbol.parse(row.symbol);
+    },
     earliestFillAt(symbol: MarketSymbol): Millis | null {
       const row = db.prepare(`SELECT MIN(at_ms) AS m FROM fills WHERE symbol = ?`).get(symbol) as Row | undefined;
       return row?.m == null ? null : Millis.parse(row.m);

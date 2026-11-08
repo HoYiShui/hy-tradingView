@@ -60,6 +60,8 @@ export function createApp(deps: { registry: Registry; webRoot: string | null }) 
   dashboard("candles", async (c, a) => {
     const q = CandleQuery.safeParse(c.req.query());
     if (!q.success || !a.info.intervals.includes(q.data.interval)) return c.json({ error: "bad query" }, 400);
+    const chartError = await a.chart.check();
+    if (chartError !== null) return c.json({ error: chartError }, 404);
     const since = q.data.since === undefined ? null : Millis.parse(q.data.since);
     const before = q.data.before === undefined ? null : Millis.parse(q.data.before);
     return c.json(await a.candles.get(q.data.interval, { since, before, limit: q.data.limit }));
@@ -87,8 +89,11 @@ export function createApp(deps: { registry: Registry; webRoot: string | null }) 
     if (!account.info.intervals.includes(q.data.interval)) return c.json({ error: "bad query" }, 400);
     const feed = account.feed.current();
     if (feed.kind !== "live" && feed.kind !== "stale") return c.json({ error: "no snapshot yet" }, 503);
-    await account.candles.refresh(q.data.interval);
-    return c.json(buildReplayPayload({ store: account.store, snapshot: feed.snapshot, interval: q.data.interval, symbol: account.info.chartSymbol }));
+    const chartError = await account.chart.check();
+    if (chartError === null) await account.candles.refresh(q.data.interval);
+    return c.json(
+      buildReplayPayload({ store: account.store, snapshot: feed.snapshot, interval: q.data.interval, symbol: account.info.chartSymbol, chartError }),
+    );
   });
 
   if (deps.webRoot !== null) {

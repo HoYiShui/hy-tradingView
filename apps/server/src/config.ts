@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Surface } from "@hy/types";
+import { MarketSymbol, Surface } from "@hy/types";
 import { Address } from "./hyperliquid/address.js";
 
 const Id = z.string().regex(/^[a-z][a-z0-9]{0,23}$/);
@@ -12,16 +12,30 @@ const Surfaces = z
 
 const Shared = { LABEL: z.string().min(1), SURFACES: Surfaces };
 
+export type ChartChoice = { kind: "default" } | { kind: "most-traded" } | { kind: "market"; symbol: MarketSymbol };
+
+const MOST_TRADED = "most-traded";
+const chartOf = (market: RegExp) =>
+  z
+    .union([z.literal(MOST_TRADED), z.string().regex(market)])
+    .optional()
+    .transform((v): ChartChoice => (v === undefined ? { kind: "default" } : v === MOST_TRADED ? { kind: "most-traded" } : { kind: "market", symbol: MarketSymbol.parse(v) }));
+
+const BACKPACK_PERP = /^[A-Z0-9]+_[A-Z0-9]+_PERP$/;
+const HYPERLIQUID_PERP = /^(?:[a-z0-9]+:)?[A-Za-z0-9]+$/;
+
 const BackpackEnv = z.strictObject({
   EXCHANGE: z.literal("backpack"),
   API_KEY: z.string().min(1),
   API_SECRET: z.string().min(1),
+  CHART: chartOf(BACKPACK_PERP),
   ...Shared,
 });
 
 const HyperliquidEnv = z.strictObject({
   EXCHANGE: z.literal("hyperliquid"),
   ADDRESS: Address,
+  CHART: chartOf(HYPERLIQUID_PERP),
   ...Shared,
 });
 
@@ -46,6 +60,7 @@ export type AccountConfig = {
   label: string;
   surfaces: Surface[];
   dbPath: string;
+  chart: ChartChoice;
   credentials: ExchangeCredentials;
 };
 
@@ -91,6 +106,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
       label: e.LABEL,
       surfaces: e.SURFACES,
       dbPath: `data/${id}.db`,
+      chart: e.CHART,
       credentials:
         e.EXCHANGE === "backpack"
           ? { exchange: "backpack", apiUrl: urls.BACKPACK_API_URL, apiKey: e.API_KEY, apiSecret: e.API_SECRET }

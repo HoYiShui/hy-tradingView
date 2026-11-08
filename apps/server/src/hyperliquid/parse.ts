@@ -7,6 +7,7 @@ import {
   RawClearinghouse,
   RawFill,
   RawFunding,
+  RawMeta,
   RawHistoricalOrder,
   RawMids,
   RawOpenOrder,
@@ -247,4 +248,8 @@ export function parseOrderHistory(input: unknown): OrderRecord[] {
       },
     ];
   });
+}
+
+export function parseListedPerps(input: unknown): Set<string> {
+  return new Set(RawMeta.parse(input).universe.flatMap((u) => (u.isDelisted === true ? [] : [u.name])));
 }

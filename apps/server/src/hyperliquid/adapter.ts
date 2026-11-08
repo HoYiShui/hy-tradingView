@@ -8,6 +8,7 @@ import {
   parseCandles,
   parseFills,
   parseFunding,
+  parseListedPerps,
   parseMids,
   parseOpenOrders,
   parseOrderHistory,
@@ -22,7 +23,7 @@ import {
 import { parseLedgerUpdates } from "./transfers.js";
 import { buildSnapshot, type UsdPerUnit } from "./snapshot.js";
 
-const CHART_SYMBOL = MarketSymbol.parse("BTC");
+const DEFAULT_CHART_SYMBOL = MarketSymbol.parse("BTC");
 const MODE_TTL_MS = 5 * 60_000;
 const DEX_SCAN_MS = 10 * 60_000;
 const PRICING_TTL_MS = 60 * 60_000;
@@ -127,7 +128,11 @@ export function createHyperliquidReader(input: {
 
   return {
     exchange: "hyperliquid",
-    chartSymbol: CHART_SYMBOL,
+    defaultChartSymbol: DEFAULT_CHART_SYMBOL,
+    async marketExists(symbol) {
+      const dex = symbol.includes(":") ? symbol.slice(0, symbol.indexOf(":")) : undefined;
+      return parseListedPerps(await client.info({ type: "meta", ...(dex === undefined ? {} : { dex }) })).has(symbol);
+    },
     capabilities: HYPERLIQUID_CAPABILITIES,
     async fetchLive() {
       const { names, scan } = await dexesToRead();
