@@ -155,6 +155,34 @@ export const EquityPoint = z.object({
 });
 export type EquityPoint = z.infer<typeof EquityPoint>;
 
+export const FundingEvent = z.object({ symbol: MarketSymbol, at: Millis, amount: Usd });
+export type FundingEvent = z.infer<typeof FundingEvent>;
+
+export const LedgerEvent = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("fill"), fill: Fill }),
+  z.object({ kind: z.literal("funding"), funding: FundingEvent }),
+]);
+export type LedgerEvent = z.infer<typeof LedgerEvent>;
+
+export const ReplayAnchor = z.object({
+  at: Millis,
+  equity: Usd,
+  marks: z.record(MarketSymbol, Price),
+});
+export type ReplayAnchor = z.infer<typeof ReplayAnchor>;
+
+export const ReplayTotals = z.object({ realized: Usd, funding: Usd, fees: Usd });
+export type ReplayTotals = z.infer<typeof ReplayTotals>;
+
+export const ReplayState = z.object({
+  at: Millis,
+  equity: Usd,
+  positions: z.array(Position),
+  metrics: AccountMetrics,
+  totals: ReplayTotals,
+});
+export type ReplayState = z.infer<typeof ReplayState>;
+
 export const CHART_SYMBOL = MarketSymbol.parse("BTC_USDC_PERP");
 
 export const API = {

@@ -88,6 +88,12 @@ importers:
         specifier: ^7.0.0
         version: 7.3.7(@types/node@26.6.6)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15)
 
+  packages/replay:
+    dependencies:
+      '@hy/types':
+        specifier: workspace:*
+        version: link:../types
+
   packages/types:
     dependencies:
       zod:
