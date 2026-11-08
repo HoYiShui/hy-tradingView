@@ -1,20 +1,22 @@
 import type { OpenOrder } from "@hy/types";
-import { price, qty, shortSymbol, triggerSizeLabel, utcTime } from "../lib/format";
+import { price, qty, triggerSizeLabel, utcTime } from "../lib/format";
 import { snapshotOf } from "../lib/status";
 import { cn } from "../lib/utils";
-import { useFeedState } from "../hooks/useAccount";
+import { useFeedState, useSymbolLabel } from "../hooks/useAccount";
 import { Empty, Panel } from "./Panel";
 import { SideBadge } from "./SideBadge";
 import { Badge } from "./ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 
 const NUM = "num text-right";
+const PURPOSE = { stop: "stop", takeProfit: "take profit", other: "trigger" } as const;
 
 function OrderRow({ o }: { o: OpenOrder }) {
+  const label = useSymbolLabel();
   const flags = o.reduceOnly ? "reduce-only" : o.kind === "limit" && o.postOnly ? "post-only" : "";
   const common = (
     <>
-      <TableCell>{shortSymbol(o.symbol)}</TableCell>
+      <TableCell>{label(o.symbol)}</TableCell>
       <TableCell><Badge className={cn(o.kind === "trigger" ? "text-warn" : "text-secondary-foreground")}>{o.kind === "limit" ? "Limit" : "Trigger"}</Badge></TableCell>
       <TableCell><SideBadge side={o.side} /></TableCell>
     </>
@@ -43,7 +45,7 @@ function OrderRow({ o }: { o: OpenOrder }) {
         <TableRow>
           {common}
           <TableCell className={NUM}>
-            <span className="text-muted-foreground">at </span>{price(o.triggerPrice)}
+            <span className="text-muted-foreground">{PURPOSE[o.purpose]} at </span>{price(o.triggerPrice)}
             <span className="text-muted-foreground"> → {o.execution}</span>
           </TableCell>
           <TableCell className={NUM}>{triggerSizeLabel(o.size)}</TableCell>

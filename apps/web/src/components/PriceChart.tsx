@@ -1,5 +1,5 @@
 import {
-  API, CANDLE_INTERVALS, type Candle, type CandleInterval, type Fill,
+  API, type Candle, type CandleInterval, type Fill,
 } from "@hy/types";
 import {
   CandlestickSeries, createChart, createSeriesMarkers, HistogramSeries, LineStyle,
@@ -8,8 +8,9 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePolled } from "../hooks/usePolled";
 import { snapshotOf } from "../lib/status";
-import { useAccount, useFeedState } from "../hooks/useAccount";
+import { useAccount, useFeedState, useSymbolLabel } from "../hooks/useAccount";
 import { mergeCandles } from "../lib/candles";
+import { firstInterval, historyLimit } from "../lib/history";
 import { price, qty } from "../lib/format";
 import { buildFillMarkers, countUnmarked } from "../lib/markers";
 import { buildPriceLines } from "../lib/orders";
@@ -54,7 +55,9 @@ async function fetchCandles(accountId: string, interval: CandleInterval, cursor:
 const NO_FILLS: Fill[] = [];
 
 export function PriceChart({ className }: { className?: string }) {
-  const { id: accountId, chartSymbol } = useAccount();
+  const { id: accountId, chartSymbol, intervals, history } = useAccount();
+  const label = useSymbolLabel();
+  const limit = historyLimit(history);
   const { data: fills } = usePolled<Fill[]>(`${API.account(accountId, "fills")}?limit=5000&symbol=${chartSymbol}`, 15_000, NO_FILLS);
   const snapshot = useFeedState((s) => snapshotOf(s.feed));
   const host = useRef<HTMLDivElement>(null);
@@ -65,12 +68,12 @@ export function PriceChart({ className }: { className?: string }) {
   const priceLines = useRef<IPriceLine[]>([]);
   const candlesRef = useRef<Candle[]>([]);
 
-  const [interval, setIntervalKey] = useState<CandleInterval>("15m");
+  const [interval, setIntervalKey] = useState<CandleInterval>(() => firstInterval(["15m"], intervals) ?? "15m");
   const [candles, setCandles] = useState<Candle[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [reachedStart, setReachedStart] = useState(false);
-  const olderState = useRef({ loading: false, reachedStart: false, interval: "15m" as CandleInterval });
+  const olderState = useRef({ loading: false, reachedStart: false, interval });
   const [hover, setHover] = useState<Legend | null>(null);
 
   useEffect(() => {
@@ -224,12 +227,12 @@ export function PriceChart({ className }: { className?: string }) {
 
   return (
     <Panel
-      title={`${chartSymbol.replace("_USDC_PERP", "-PERP")} candles`}
+      title={`${label(chartSymbol)} candles`}
       className={className}
       aside={
         <Tabs value={interval} onValueChange={(v) => setIntervalKey(v as CandleInterval)}>
           <TabsList aria-label="Candle interval">
-            {CANDLE_INTERVALS.map((i) => <TabsTrigger key={i} value={i}>{i}</TabsTrigger>)}
+            {intervals.map((i) => <TabsTrigger key={i} value={i}>{i}</TabsTrigger>)}
           </TabsList>
         </Tabs>
       }
@@ -257,6 +260,7 @@ export function PriceChart({ className }: { className?: string }) {
           <span><i className="mr-1.5 inline-block size-2.5 rounded-sm border-2 border-up bg-card align-[-1px]" />Up (hollow)</span>
           <span><i className="mr-1.5 inline-block size-2.5 rounded-sm border-2 border-down bg-down align-[-1px]" />Down (filled)</span>
           <span className="text-muted-foreground">Arrows: fills (hover candle for detail) · dashed: limit · dotted: trigger</span>
+          {limit !== null && <span className="text-muted-foreground" data-testid="history-limit">{limit}</span>}
           {loadingOlder && <span className="text-muted-foreground" role="status">Loading older bars</span>}
           {reachedStart && <span className="text-muted-foreground">Start of data</span>}
           {unmarked > 0 && (

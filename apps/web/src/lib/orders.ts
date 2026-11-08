@@ -10,6 +10,8 @@ export interface PriceLineSpec {
   title: string;
 }
 
+const TRIGGER_NAME = { stop: "stop", takeProfit: "take profit", other: "trigger" } as const;
+
 function orderLine(o: OpenOrder): PriceLineSpec {
   const side = o.side === "buy" ? "BUY" : "SELL";
   const color = o.side === "buy" ? COLOR.up : COLOR.down;
@@ -28,7 +30,7 @@ function orderLine(o: OpenOrder): PriceLineSpec {
         price: o.triggerPrice,
         color,
         style: "dotted",
-        title: `${side} trigger ${o.execution} ${triggerSizeLabel(o.size)}`,
+        title: `${side} ${TRIGGER_NAME[o.purpose]} ${o.execution} ${triggerSizeLabel(o.size)}`,
       };
     default: {
       const _exhaustive: never = o;

@@ -1,9 +1,9 @@
-import type { Candle, Fill } from "@hy/types";
+import { INTERVAL_MS, type Candle, type Fill } from "@hy/types";
 import {
   CandlestickSeries, createChart, createSeriesMarkers, type IChartApi, type ISeriesApi, type ISeriesMarkersPluginApi, type Time, type UTCTimestamp,
 } from "lightweight-charts";
 import { useEffect, useRef } from "react";
-import { INTERVAL_MS } from "../lib/candles";
+import { useSymbolLabel } from "../hooks/useAccount";
 import type { Frame, ReplayModel } from "../lib/replayModel";
 import { formingCandle, replayMarkers } from "../lib/replayMarkers";
 import { COLOR } from "../lib/theme";
@@ -21,6 +21,7 @@ function lastShown(model: ReplayModel, frame: Frame): Candle | undefined {
 }
 
 export function ReplayChart({ model, frame }: { model: ReplayModel; frame: Frame }) {
+  const label = useSymbolLabel();
   const host = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const series = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -74,7 +75,7 @@ export function ReplayChart({ model, frame }: { model: ReplayModel; frame: Frame
   }, [model, frame]);
 
   return (
-    <Panel title={`${model.symbol.replace("_USDC_PERP", "-PERP")} candles (${model.interval})`} aside={<span className="text-xs text-muted-foreground">{model.candlesComplete ? "" : "candles start after first fill"}</span>}>
+    <Panel title={`${label(model.symbol)} candles (${model.interval})`} aside={<span className="text-xs text-muted-foreground">{model.candlesComplete ? "" : "candles start after first fill"}</span>}>
       <div ref={host} className="h-[380px] w-full sm:h-[460px]" />
     </Panel>
   );

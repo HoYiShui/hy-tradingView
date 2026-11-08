@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { AccountInfo } from "@hy/types";
 import { accountsOn, pickAccount, withAccountParam } from "./accounts";
 
-const info = (id: string, surfaces: string[]) => AccountInfo.parse({ id, label: id, exchange: "backpack", surfaces, chartSymbol: "BTC_USDC_PERP" });
+const info = (id: string, surfaces: string[]) => AccountInfo.parse({ id, label: id, exchange: "backpack", surfaces, chartSymbol: "BTC_USDC_PERP", intervals: ["15m", "1h"], history: { candleDepthBars: null, fillDepth: null } });
 const all = [info("live", ["dashboard"]), info("both", ["dashboard", "replay"]), info("test", ["replay"])];
 
 describe("accounts", () => {

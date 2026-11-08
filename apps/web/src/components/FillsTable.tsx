@@ -1,5 +1,6 @@
 import type { Fill } from "@hy/types";
-import { price, qty, shortSymbol, usd, utcTime } from "../lib/format";
+import { useSymbolLabel } from "../hooks/useAccount";
+import { price, qty, usd, utcTime } from "../lib/format";
 import { Empty, Panel } from "./Panel";
 import { SideBadge } from "./SideBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
@@ -7,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 const NUM = "num text-right";
 
 export function FillsTable({ fills, loaded, error, className }: { fills: readonly Fill[]; loaded: boolean; error: string | null; className?: string }) {
+  const label = useSymbolLabel();
   return (
     <Panel title="Fills" className={className} aside={fills.length > 0 ? <span className="text-xs text-muted-foreground">{fills.length} latest</span> : null}>
       {fills.length === 0 ? (
@@ -24,7 +26,7 @@ export function FillsTable({ fills, loaded, error, className }: { fills: readonl
             {fills.map((f) => (
               <TableRow key={f.id}>
                 <TableCell className={`${NUM} text-left text-muted-foreground`}>{utcTime(f.at)}</TableCell>
-                <TableCell>{shortSymbol(f.symbol)}</TableCell>
+                <TableCell>{label(f.symbol)}</TableCell>
                 <TableCell><SideBadge side={f.side} /></TableCell>
                 <TableCell className={NUM}>{price(f.price)}</TableCell>
                 <TableCell className={NUM}>{qty(f.quantity)}</TableCell>

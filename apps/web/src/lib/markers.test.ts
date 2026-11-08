@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { INTERVAL_MS } from "./candles";
+import { INTERVAL_MS } from "@hy/types";
 import { candle, fill } from "./fixtures";
 import { buildFillMarkers, countUnmarked } from "./markers";
 import { mergeCandles } from "./candles";
@@ -13,6 +13,12 @@ describe("buildFillMarkers", () => {
   it("snaps a fill to the candle containing it", () => {
     const [m] = buildFillMarkers([fill({ at: T0 + 2 * HOUR + 59 * 60_000 })], hourly, "1h", BTC);
     expect(m?.time).toBe((T0 + 2 * HOUR) / 1000);
+  });
+
+  it("snaps a fill on the last day of a 31 day month to its monthly bar", () => {
+    const start = Date.UTC(2026, 0, 1);
+    const [m] = buildFillMarkers([fill({ at: Date.UTC(2026, 0, 31, 12) })], [candle(start), candle(Date.UTC(2026, 1, 1))], "1M", BTC);
+    expect(m?.time).toBe(start / 1000);
   });
 
   it("snaps differently per interval", () => {

@@ -1,5 +1,6 @@
 import type { OrderSpan } from "@hy/types";
-import { price, qty, shortSymbol, utcTime } from "../lib/format";
+import { useSymbolLabel } from "../hooks/useAccount";
+import { price, qty, utcTime } from "../lib/format";
 import { Empty, Panel } from "./Panel";
 import { SideBadge } from "./SideBadge";
 import { Badge } from "./ui/badge";
@@ -8,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 const MAX_ROWS = 40;
 
 export function ReplayOrders({ orders }: { orders: readonly OrderSpan[] }) {
+  const label = useSymbolLabel();
   const approx = orders.filter((o) => o.estimated).length;
   return (
     <Panel
@@ -28,7 +30,7 @@ export function ReplayOrders({ orders }: { orders: readonly OrderSpan[] }) {
           <TableBody>
             {orders.slice(0, MAX_ROWS).map((o) => (
               <TableRow key={`${o.symbol}:${o.from}:${o.price}:${o.side}`}>
-                <TableCell>{shortSymbol(o.symbol)}</TableCell>
+                <TableCell>{label(o.symbol)}</TableCell>
                 <TableCell><Badge className={o.kind === "trigger" ? "text-warn" : "text-secondary-foreground"}>{o.kind === "limit" ? "Limit" : "Trigger"}</Badge></TableCell>
                 <TableCell><SideBadge side={o.side} /></TableCell>
                 <TableCell className="num text-right">{price(o.price)}</TableCell>

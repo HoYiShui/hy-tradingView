@@ -1,8 +1,8 @@
 import type { Position } from "@hy/types";
-import { price, qty, SIGN_MARK, shortSymbol, signedUsd, signOf, usd } from "../lib/format";
+import { price, qty, SIGN_MARK, signedUsd, signOf, usd } from "../lib/format";
 import { snapshotOf } from "../lib/status";
 import { SIGN_TEXT, cn } from "../lib/utils";
-import { useFeedState } from "../hooks/useAccount";
+import { useFeedState, useSymbolLabel } from "../hooks/useAccount";
 import { Flash } from "./Flash";
 import { Empty, Panel } from "./Panel";
 import { SideBadge } from "./SideBadge";
@@ -16,6 +16,7 @@ export function PositionsTable({ className }: { className?: string }) {
 }
 
 export function PositionsPanel({ positions, emptyText, className }: { positions: readonly Position[]; emptyText: string; className?: string }) {
+  const label = useSymbolLabel();
   return (
     <Panel title="Positions" className={className}>
       {positions.length === 0 ? (
@@ -36,8 +37,8 @@ export function PositionsPanel({ positions, emptyText, className }: { positions:
               const f = signOf(p.cumulativeFunding);
               return (
                 <TableRow key={p.symbol}>
-                  <TableCell>{shortSymbol(p.symbol)}</TableCell>
-                  <TableCell><SideBadge side={p.direction} /></TableCell>
+                  <TableCell>{label(p.symbol)}</TableCell>
+                  <TableCell><SideBadge side={p.direction} />{p.leverage !== null && <span className="ml-1.5 text-xs text-muted-foreground">{p.leverage}x {p.margin}</span>}</TableCell>
                   <TableCell className={NUM}>{qty(p.quantity)}</TableCell>
                   <TableCell className={NUM}>{price(p.entryPrice)}</TableCell>
                   <TableCell className={NUM}><Flash value={price(p.markPrice)} /></TableCell>

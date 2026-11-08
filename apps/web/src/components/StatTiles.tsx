@@ -36,7 +36,7 @@ function Loaded({ snapshot }: { snapshot: NonNullable<ReturnType<typeof snapshot
     <>
       <Tile label="Equity" value={usd(account.equity)} />
       <Tile label="Open PnL" value={`${SIGN_MARK[sign]} ${signedUsd(metrics.openPnl)}`} sub={SIGN_WORD[sign]} tone={pnlTone} />
-      <Tile label="Cross leverage" value={leverageX(metrics.leverage)} sub={`limit ${account.leverageLimit}x · gross ${usd(metrics.grossNotional)}`} />
+      <Tile label="Cross leverage" value={leverageX(metrics.leverage)} sub={`${account.leverageLimit === null ? "" : `limit ${account.leverageLimit}x · `}gross ${usd(metrics.grossNotional)}`} />
       <Tile label="Available equity" value={usd(account.availableEquity)} />
       <Tile label="Locked equity" value={usd(account.lockedEquity)} />
       <Tile

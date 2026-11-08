@@ -1,3 +1,5 @@
+import type { Exchange } from "@hy/types";
+
 const usdFmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const compactFmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 2 });
 const priceFmt = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 8 });
@@ -59,8 +61,17 @@ export function relativeAge(ms: number, now: number): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-export function shortSymbol(symbol: string): string {
-  return symbol.replace(/_USDC_PERP$/, "-PERP");
+export function symbolLabel(exchange: Exchange, symbol: string): string {
+  switch (exchange) {
+    case "backpack":
+      return symbol.replace(/_USDC_PERP$/, "-PERP");
+    case "hyperliquid":
+      return `${symbol}-PERP`;
+    default: {
+      const _exhaustive: never = exchange;
+      return _exhaustive;
+    }
+  }
 }
 
 export function triggerSizeLabel(size: import("@hy/types").TriggerSize): string {

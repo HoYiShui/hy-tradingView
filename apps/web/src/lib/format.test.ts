@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { leverageX, percent, price, qty, relativeAge, shortSymbol, signedUsd, signOf, usd } from "./format";
+import { leverageX, percent, price, qty, relativeAge, signedUsd, signOf, symbolLabel, usd } from "./format";
 
 describe("format", () => {
   it("formats usd to 2dp and never shows negative zero", () => {
@@ -34,8 +34,10 @@ describe("format", () => {
     expect(relativeAge(now - 3 * 3_600_000, now)).toBe("3h ago");
     expect(relativeAge(now + 5000, now)).toBe("just now");
   });
-  it("shortens perp symbols", () => {
-    expect(shortSymbol("BTC_USDC_PERP")).toBe("BTC-PERP");
-    expect(shortSymbol("SOL_USDC")).toBe("SOL_USDC");
+  it("labels perp symbols by the naming of their exchange", () => {
+    expect(symbolLabel("backpack", "BTC_USDC_PERP")).toBe("BTC-PERP");
+    expect(symbolLabel("backpack", "SOL_USDC")).toBe("SOL_USDC");
+    expect(symbolLabel("hyperliquid", "BTC")).toBe("BTC-PERP");
+    expect(symbolLabel("hyperliquid", "xyz:GOLD")).toBe("xyz:GOLD-PERP");
   });
 });

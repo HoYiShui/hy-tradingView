@@ -1,10 +1,12 @@
-import { CANDLE_INTERVALS, type AccountInfo, type CandleInterval, type Fill } from "@hy/types";
+import { type AccountInfo, type CandleInterval, type Fill } from "@hy/types";
 import { START } from "@hy/replay";
 import { Pause, Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AccountProvider } from "../hooks/useAccount";
 import { useSelectedAccount } from "../hooks/useAccounts";
 import { useReplayData } from "../hooks/useReplayData";
 import { accountsOn } from "../lib/accounts";
+import { firstInterval, historyLimit } from "../lib/history";
 import { DAY_MS, SPEEDS, makeClock, realSecondsToFinish, seekTo, tick, togglePlay, withSpeed, type Clock } from "../lib/clock";
 import { leverageX, signedUsd, signOf, SIGN_MARK, usd } from "../lib/format";
 import { frameAt, type Frame, type ReplayModel } from "../lib/replayModel";
@@ -21,6 +23,7 @@ import { TooltipProvider } from "./ui/tooltip";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 
 const FEED_ROWS = 60;
+const REPLAY_INTERVALS: readonly CandleInterval[] = ["15m", "1h", "4h", "1d"];
 
 function useClock(model: ReplayModel) {
   const [clock, setClock] = useState<Clock>(() => makeClock(model.start, model.end));
@@ -125,9 +128,12 @@ function Player({ model }: { model: ReplayModel }) {
 }
 
 function ReplayPage({ account, accounts, onSelect }: { account: AccountInfo; accounts: AccountInfo[]; onSelect: (id: string) => void }) {
-  const [interval, setInterval] = useState<CandleInterval>("1h");
+  const replayIntervals = account.intervals.filter((i) => REPLAY_INTERVALS.includes(i));
+  const [interval, setInterval] = useState<CandleInterval>(() => firstInterval(["1h"], replayIntervals) ?? "1h");
+  const limit = historyLimit(account.history);
   const load = useReplayData(account.id, interval);
   return (
+    <AccountProvider value={account}>
     <TooltipProvider delayDuration={150}>
       <div className="mx-auto max-w-[1680px] px-2 pb-8 pt-2 sm:px-4 sm:pt-3">
         <header className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -138,7 +144,7 @@ function ReplayPage({ account, accounts, onSelect }: { account: AccountInfo; acc
             <AccountSwitcher accounts={accountsOn(accounts, "replay")} selected={account.id} onSelect={onSelect} />
             <Tabs value={interval} onValueChange={(v) => setInterval(v as CandleInterval)}>
               <TabsList aria-label="Candle interval">
-                {CANDLE_INTERVALS.filter((i) => ["15m", "1h", "4h", "1d"].includes(i)).map((i) => <TabsTrigger key={i} value={i}>{i}</TabsTrigger>)}
+                {replayIntervals.map((i) => <TabsTrigger key={i} value={i}>{i}</TabsTrigger>)}
               </TabsList>
             </Tabs>
             <a href="/" className="text-primary hover:underline">Dashboard</a>
@@ -146,12 +152,14 @@ function ReplayPage({ account, accounts, onSelect }: { account: AccountInfo; acc
         </header>
         <p className="mb-2 text-xs text-muted-foreground">
           Equity is back-derived from today's equity minus later PnL, funding and fees. It assumes no deposits or withdrawals and no spot trading, and marks open positions to candle opens.
+          {limit !== null && <span data-testid="history-limit"> {limit}</span>}
         </p>
         {load.kind === "loading" && <div className="rounded border border-dashed border-border px-3 py-10 text-center text-muted-foreground">Loading history</div>}
         {load.kind === "error" && <div role="alert" className="rounded border border-dashed border-border px-3 py-10 text-center text-loss">Could not load replay ({load.message})</div>}
         {load.kind === "ready" && <Player key={load.model.interval} model={load.model} />}
       </div>
     </TooltipProvider>
+    </AccountProvider>
   );
 }
 

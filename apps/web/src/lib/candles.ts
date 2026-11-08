@@ -1,14 +1,4 @@
-import type { Candle, CandleInterval } from "@hy/types";
-
-export const INTERVAL_MS: Record<CandleInterval, number> = {
-  "1m": 60_000,
-  "5m": 5 * 60_000,
-  "15m": 15 * 60_000,
-  "1h": 3_600_000,
-  "4h": 4 * 3_600_000,
-  "1d": 86_400_000,
-  "1w": 7 * 86_400_000,
-};
+import { INTERVAL_MS, type Candle, type CandleInterval } from "@hy/types";
 
 export function mergeCandles(existing: readonly Candle[], incoming: readonly Candle[]): Candle[] {
   if (incoming.length === 0) return [...existing];
@@ -16,6 +6,12 @@ export function mergeCandles(existing: readonly Candle[], incoming: readonly Can
   for (const c of existing) byStart.set(c.start, c);
   for (const c of incoming) byStart.set(c.start, c);
   return [...byStart.values()].sort((a, b) => a.start - b.start);
+}
+
+function barEnd(start: number, interval: CandleInterval): number {
+  if (interval !== "1M") return start + INTERVAL_MS[interval];
+  const d = new Date(start);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
 }
 
 export function findCandleStart(candles: readonly Candle[], at: number, interval: CandleInterval): number | null {
@@ -33,6 +29,6 @@ export function findCandleStart(candles: readonly Candle[], at: number, interval
       hi = mid - 1;
     }
   }
-  if (found === null || at >= found.start + INTERVAL_MS[interval]) return null;
+  if (found === null || at >= barEnd(found.start, interval)) return null;
   return found.start;
 }
