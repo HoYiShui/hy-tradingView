@@ -43,12 +43,18 @@ const PAGE = 500;
 const MAX_LABELLED_MARKERS = 25;
 const LOAD_OLDER_WITHIN_BARS = 30;
 
+async function errorMessage(res: Response): Promise<string> {
+  const body: unknown = await res.json().catch(() => null);
+  const message = typeof body === "object" && body !== null && "error" in body ? body.error : null;
+  return typeof message === "string" ? message : `${res.status} ${res.statusText}`;
+}
+
 async function fetchCandles(accountId: string, interval: CandleInterval, cursor: { since?: number; before?: number } = {}): Promise<Candle[]> {
   const q = new URLSearchParams({ interval, limit: String(PAGE) });
   if (cursor.since !== undefined) q.set("since", String(cursor.since));
   if (cursor.before !== undefined) q.set("before", String(cursor.before));
   const res = await fetch(`${API.account(accountId, "candles")}?${q}`);
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  if (!res.ok) throw new Error(await errorMessage(res));
   return (await res.json()) as Candle[];
 }
 

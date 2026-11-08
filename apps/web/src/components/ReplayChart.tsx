@@ -75,7 +75,11 @@ export function ReplayChart({ model, frame }: { model: ReplayModel; frame: Frame
   }, [model, frame]);
 
   return (
-    <Panel title={`${label(model.symbol)} candles (${model.interval})`} aside={<span className="text-xs text-muted-foreground">{model.candlesComplete ? "" : "candles start after first fill"}</span>}>
+    <Panel title={`${label(model.symbol)} candles (${model.interval})`} aside={
+        model.chartError === null
+          ? <span className="text-xs text-muted-foreground">{model.candlesComplete ? "" : "candles start after first fill"}</span>
+          : <span role="alert" data-testid="chart-error" className="text-xs text-loss">{model.chartError}</span>
+      }>
       <div ref={host} className="h-[380px] w-full sm:h-[460px]" />
     </Panel>
   );

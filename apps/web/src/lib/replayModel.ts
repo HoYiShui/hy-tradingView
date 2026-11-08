@@ -28,6 +28,7 @@ export interface ReplayModel {
   readonly base: number;
   readonly curve: readonly EquityPoint[];
   readonly candlesComplete: boolean;
+  readonly chartError: string | null;
 }
 
 export interface Frame {
@@ -129,6 +130,7 @@ export function buildModel(payload: ReplayPayload): ReplayModel {
     base,
     curve,
     candlesComplete: payload.candlesComplete,
+    chartError: payload.chartError,
   };
 }
 
