@@ -1,35 +1,49 @@
 # hy-tradingView
 
-A public, read-only dashboard for Backpack Exchange perp accounts. It shows positions, open orders, fills on a BTC candlestick chart, daily realized PnL and cross-margin leverage.
+A public, read-only dashboard for Backpack and Hyperliquid perp accounts. It shows positions, open orders, fills on a BTC candlestick chart, daily realized PnL and cross-margin leverage.
 
 ## Setup
 
 Requires Node 24 (uses the built-in `node:sqlite`) and pnpm 10.
 
-1. Copy `.env.example` to `.env` and fill it in. `ACCOUNTS` lists account ids. Each id needs `ACCOUNT_<ID>_EXCHANGE`, `_LABEL`, `_SURFACES` and that exchange's credentials. Use read-only API keys. For `backpack` the secret is the base64 ED25519 seed.
+1. Copy `.env.example` to `.env` and fill it in. `ACCOUNTS` lists account ids. Each id needs `ACCOUNT_<ID>_EXCHANGE`, `_LABEL`, `_SURFACES` and that exchange's credentials. For `backpack` use read-only API keys. The secret is the base64 ED25519 seed. For `hyperliquid` set only `ACCOUNT_<ID>_ADDRESS`, the public wallet address (EIP-55 checksum or all one case). Hyperliquid reads need no key. A private key variable is rejected by name and must never be set.
 2. `pnpm install`
 3. `pnpm dev` starts the server on :8787 and the web app on :5173.
 
 An account's surfaces say where it appears. `dashboard` puts it on `/` (with a switcher when more than one account has it, and `?account=<id>` in the URL). `replay` puts it on `/replay`. One account can have both. Each account gets its own database at `data/<id>.db`, so no state is shared. The server refuses to start on a missing or invalid variable and names it without echoing any value.
 
-Scripts that talk to an account take its id. `pnpm probe <id>` writes redacted samples to `scripts/samples-<id>/`. `pnpm verify <id>` checks the running server against direct signed calls for each surface of that account. `pnpm reconcile:replay <id>` and `pnpm bench:replay <id>` read that account's database.
+Scripts that talk to an account take its id. `pnpm probe <id>` writes redacted samples to `scripts/samples-<id>/` for Backpack and to `scripts/samples-hyperliquid/` for Hyperliquid. `pnpm verify <id>` checks the running server against direct exchange calls (`scripts/direct/`) for each surface of that account. `pnpm reconcile:replay <id>` and `pnpm bench:replay <id>` read that account's database.
 
-Other scripts are `pnpm build`, `pnpm typecheck` and `pnpm test`. The probe calls each read endpoint once. The parser tests run against the samples in `scripts/samples/` and `scripts/samples-test/`.
+Other scripts are `pnpm build`, `pnpm typecheck` and `pnpm test`. The probe calls each read endpoint once. The parser tests run against the samples in `scripts/samples/`, `scripts/samples-test/` and `scripts/samples-hyperliquid/`.
 
 For a single process, run `pnpm build` and then `pnpm --filter @hy/server start`. The server serves `apps/web/dist` when it exists.
 
 ## Architecture
 
 - `packages/types` holds the zod schemas and inferred types for the exchange-agnostic domain: `AccountSnapshot`, `Position`, `OpenOrder` (limit or trigger), `Fill`, `Candle`, `DailyPnl` and the `Feed` state.
-- `apps/server` is Hono on Node. `backpack/client.ts` is GET-only by construction and signs requests with ED25519. `backpack/parse.ts` is the only place raw Backpack payloads are parsed. Everything else trusts the domain types. `exchange.ts` is the interface an exchange adapter implements. It owns signing, snapshot, fills, funding, orders, candles and the chart market (`chartSymbol`). `exchanges.ts` picks the adapter from the account's credentials, which `config.ts` parses as a union keyed by exchange.
-- `accounts.ts` builds one `AccountContext` per configured account (adapter, store, feed, candle service) and a registry the routes look accounts up in. A surface decides which pollers run. A dashboard account polls every 2 seconds, records equity and syncs fills, funding and position history. A replay-only account polls every 30 seconds for its equity anchor and syncs fills, funding and order history. Browser traffic never reaches an adapter except through the candle service. An unknown id or an account without the surface gets a 404.
-- Each account's poller reads positions, orders and collateral and keeps the latest snapshot in memory. Browsers receive a dashboard account's snapshot over SSE at `/api/accounts/:id/stream`, or once at `/api/accounts/:id/snapshot`. Browser traffic never triggers a Backpack call for the snapshot. `/api/accounts` lists accounts with their label, exchange, surfaces and chart market.
+- `apps/server` is Hono on Node. `backpack/client.ts` is GET-only by construction and signs requests with ED25519. `backpack/parse.ts` is the only place raw Backpack payloads are parsed. Everything else trusts the domain types. `hyperliquid/` is the second adapter: `client.ts` posts to the open `/info` endpoint only, with retries and backoff because the network resets connections, `raw.ts` and `parse.ts` hold the zod schemas derived from real responses, and `snapshot.ts` is the pure equity and margin math. `exchange.ts` is the interface an adapter implements. It owns the snapshot, fills, funding, orders, candles, the chart market (`chartSymbol`) and its `capabilities`: the candle intervals it serves, its history limits and the slowest polling it tolerates. Symbol naming, quote currency and interval names live inside each adapter. `exchanges.ts` picks the adapter from the account's credentials, which `config.ts` parses as a union keyed by exchange.
+- `accounts.ts` builds one `AccountContext` per configured account (adapter, store, feed, candle service) and a registry the routes look accounts up in. A surface decides which pollers run, and the adapter's capabilities set a floor under their pace. A dashboard account polls every 2 seconds, records equity and syncs fills, funding and position history. A replay-only account polls every 30 seconds for its equity anchor and syncs fills, funding and order history. Browser traffic never reaches an adapter except through the candle service. An unknown id or an account without the surface gets a 404.
+- Each account's poller reads positions, orders and collateral and keeps the latest snapshot in memory. Browsers receive a dashboard account's snapshot over SSE at `/api/accounts/:id/stream`, or once at `/api/accounts/:id/snapshot`. Browser traffic never triggers a Backpack call for the snapshot. `/api/accounts` lists accounts with their label, exchange, surfaces, chart market, candle intervals and history limits. The web interval tabs come from that list, and a candle request for an interval the account does not serve gets a 400.
 - Fills, funding and position history sync incrementally into the account's SQLite file. Daily PnL is a SQL aggregation.
-- Candles are fetched from the public klines endpoint on demand, stored in SQLite, and refreshed at most once per 2 seconds per interval no matter how many browsers ask. Concurrent requests share one upstream call.
+- Candles are fetched from the exchange's public candle endpoint on demand, stored in SQLite, and refreshed at most once per 2 seconds per interval no matter how many browsers ask. Concurrent requests share one upstream call.
 - The poller also records an equity snapshot per 5 minute bucket (restarts overwrite the bucket, so they never duplicate). `/api/accounts/:id/equity?range=1d|7d|30d|all` downsamples in SQL to at most about 600 points. The curve is raw account equity. Deposits and withdrawals are not tracked, so use it as performance only for an account without capital flows. There is no backfill before the first snapshot, since that needs a known starting equity.
 - The API has a per-IP rate limit and a cap on open streams.
 - `apps/web` is Vite, React, Tailwind with shadcn/ui components, Lucide icons and lightweight-charts. One Zustand store holds the latest SSE snapshot per account id and panels subscribe by selector for the selected account. History and candles use plain fetch.
 - `pnpm verify <id>` compares the running server with direct signed calls and greps served responses and the bundle for every configured key and secret.
+
+## Hyperliquid
+
+Set `ACCOUNT_<ID>_EXCHANGE=hyperliquid` and `ACCOUNT_<ID>_ADDRESS=0x...`. The chart market is `BTC`. The adapter reads perps only.
+
+- Equity. A unified or portfolio-margin account holds one spot pool whose total already floats with perp unrealized PnL, so equity is the spot USD sum and the perp account value is not added. A standard account sums the perp account value over every dex and adds spot. The mode comes from `userAbstraction`. This was checked against the account's own `portfolio` all-time equity, which equals the spot total.
+- HIP-3 dexs. Builder dexs (such as `xyz`) need their own `clearinghouseState` and `frontendOpenOrders` calls and their coins are prefixed (`xyz:GOLD`). The adapter scans the dex list every 10 minutes, then reads only the dexs where the account has positions or orders or has traded.
+- Mapping. `B` is buy and `A` is sell. A fill is a taker when `crossed`. Fees must be in a stable token, or the parse fails loudly. Positions carry entry price, liquidation price, leverage and cross or isolated margin. Orders are limit (post-only when `Alo`) or trigger, marked stop or take profit and market or limit. A position-level TP or SL has no size and shows as all. The exchange does not report a break-even price, so it is null.
+- History limits. The exchange serves the 5000 most recent candles per interval and the 10000 most recent fills. These are adapter capabilities. The chart and `/replay` print them, the candle backfill never reaches past them, marks the covered range, and never refetches it. Fills sync incrementally and are stored, so the local history can outgrow the exchange window. Order history has a 2000 order window.
+- Rate limits. Info requests are weighted. Live polling is no faster than every 15 seconds and syncs no faster than every 15 seconds.
+- Fill order. Inside one millisecond the API order is the true order. Ordering by `tid` breaks the replay, so the store keeps insertion order.
+- Perp fills carry the exchange's `closedPnl`. The replay reducer's realized PnL is within entry rounding of it.
+- Replay caveat. Equity is back-derived with no capital flows, so an address with deposits, withdrawals or sends has a shifted curve. The positions, fees, funding and PnL are exact. `pnpm reconcile:replay <id>` reads the ledger and prints the net transfers that explain the shift.
+- Chart coin. The chart is fixed to the adapter's `chartSymbol` (BTC). The most traded coin could be offered the same way, as an optional per-account setting, but there is no picker.
 
 ## Time machine
 
@@ -37,9 +51,9 @@ For a single process, run `pnpm build` and then `pnpm --filter @hy/server start`
 
 - `packages/replay` holds the pure reducer. `reduceLedger` folds sorted fills and funding events into a `Book` (per-symbol quantity and average entry, realized PnL, funding, fees). `snapshotAt` marks it to the candles and derives equity, notional and cross leverage. `buildTimeline` and `seek` keep a checkpoint every 512 events, so advancing the clock applies only the new events and a scrub back replays at most 511.
 - Equity is back-derived with no capital config: the starting balance is today's real equity minus all later PnL, funding and fees minus open PnL. The curve is therefore only valid for an account without deposits or withdrawals. An account with one deposit before its first fill reconciles. An account with many deposits and withdrawals has a distorted equity curve even though its positions and PnL are exact.
-- `GET /api/replay?account=<id>&interval=` (the first replay account when `account` is omitted) returns everything in compact tuples (fills, funding, candles from the first BTC fill, order spans, the equity anchor). It reads only SQLite and the in-memory snapshot, with no Backpack call. Order history syncs every 60 seconds into an `orders` table.
+- `GET /api/replay?account=<id>&interval=` (the first replay account when `account` is omitted) returns everything in compact tuples (fills, funding, candles from the first fill on the chart market, order spans, the equity anchor). It reads only SQLite and the in-memory snapshot, with no exchange call. Order history syncs every 60 seconds into an `orders` table.
 - Open orders are approximate. Order history keeps only the final state, so a filled order is open from creation to its last fill (exact), and a cancelled one stays open until the next order on the same market and side, capped at 6 hours.
-- Marks come from the BTC candles only. Other perp symbols are marked at their last fill price until the last event, then at the live mark. Spot fills are ignored, like the exchange's position fees.
+- Marks come from the chart market candles only. Other perp symbols are marked at their last fill price until the last event, then at the live mark. Spot fills are ignored, like the exchange's position fees. Hyperliquid spot fills are not stored.
 - `pnpm reconcile:replay <id>` compares the reconstruction with the real positions and equity. `pnpm bench:replay` times the reducer over the stored fills.
 
 ## Security
