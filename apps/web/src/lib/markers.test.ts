@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { INTERVAL_MS } from "./candles";
 import { candle, fill } from "./fixtures";
-import { buildFillMarkers } from "./markers";
+import { buildFillMarkers, countUnmarked } from "./markers";
+import { mergeCandles } from "./candles";
 
 const HOUR = INTERVAL_MS["1h"];
 const T0 = 1_700_000_000_000 - (1_700_000_000_000 % HOUR);
@@ -57,5 +58,22 @@ describe("buildFillMarkers", () => {
   it("returns nothing for empty inputs", () => {
     expect(buildFillMarkers([], hourly, "1h")).toEqual([]);
     expect(buildFillMarkers([fill({ at: T0 })], [], "1h")).toEqual([]);
+  });
+});
+
+describe("markers across a prepend of older candles", () => {
+  const older = [-3, -2, -1].map((i) => candle(T0 + i * HOUR));
+  const fills = [fill({ at: T0 - 2 * HOUR + 60_000 }), fill({ at: T0 + HOUR + 60_000 })];
+
+  it("leaves old fills unmarked but counted until their candles load, then marks them", () => {
+    expect(buildFillMarkers(fills, hourly, "1h")).toHaveLength(1);
+    expect(countUnmarked(fills, hourly, "1h")).toBe(1);
+    const merged = mergeCandles(hourly, older);
+    expect(buildFillMarkers(fills, merged, "1h").map((m) => m.time)).toEqual([(T0 - 2 * HOUR) / 1000, (T0 + HOUR) / 1000]);
+    expect(countUnmarked(fills, merged, "1h")).toBe(0);
+  });
+
+  it("ignores fills on other symbols when counting", () => {
+    expect(countUnmarked([fill({ at: 0, symbol: "ETH_USDC_PERP" as never })], hourly, "1h")).toBe(0);
   });
 });

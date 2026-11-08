@@ -57,3 +57,14 @@ export function buildFillMarkers(
     })
     .sort((a, b) => a.time - b.time || a.side.localeCompare(b.side));
 }
+
+export function countUnmarked(
+  fills: readonly Fill[],
+  candles: readonly Candle[],
+  interval: CandleInterval,
+  symbol: string = CHART_SYMBOL,
+): number {
+  let n = 0;
+  for (const f of fills) if (f.symbol === symbol && findCandleStart(candles, f.at, interval) === null) n += 1;
+  return n;
+}

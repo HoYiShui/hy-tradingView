@@ -6,11 +6,12 @@ import {
   type IChartApi, type IPriceLine, type ISeriesApi, type ISeriesMarkersPluginApi, type Time, type UTCTimestamp,
 } from "lightweight-charts";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { usePolled } from "../hooks/usePolled";
 import { snapshotOf } from "../lib/status";
 import { useFeedStore } from "../store/feedStore";
 import { mergeCandles } from "../lib/candles";
 import { price, qty } from "../lib/format";
-import { buildFillMarkers } from "../lib/markers";
+import { buildFillMarkers, countUnmarked } from "../lib/markers";
 import { buildPriceLines } from "../lib/orders";
 import { COLOR } from "../lib/theme";
 import { cn } from "../lib/utils";
@@ -37,15 +38,23 @@ const ts = (ms: number) => Math.floor(ms / 1000) as UTCTimestamp;
 const volumePoint = (c: Candle) => ({ time: ts(c.start), value: c.volume, color: c.close >= c.open ? VOLUME_UP : VOLUME_DOWN });
 const candlePoint = (c: Candle) => ({ time: ts(c.start), open: c.open, high: c.high, low: c.low, close: c.close });
 
-async function fetchCandles(interval: CandleInterval, since?: number): Promise<Candle[]> {
-  const q = new URLSearchParams({ interval });
-  if (since !== undefined) q.set("since", String(since));
+const PAGE = 500;
+const LOAD_OLDER_WITHIN_BARS = 30;
+
+async function fetchCandles(interval: CandleInterval, cursor: { since?: number; before?: number } = {}): Promise<Candle[]> {
+  const q = new URLSearchParams({ interval, limit: String(PAGE) });
+  if (cursor.since !== undefined) q.set("since", String(cursor.since));
+  if (cursor.before !== undefined) q.set("before", String(cursor.before));
   const res = await fetch(`${API.candles}?${q}`);
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return (await res.json()) as Candle[];
 }
 
-export function PriceChart({ fills, className }: { fills: readonly Fill[]; className?: string }) {
+const NO_FILLS: Fill[] = [];
+const CHART_FILLS_URL = `${API.fills}?limit=5000&symbol=${CHART_SYMBOL}`;
+
+export function PriceChart({ className }: { className?: string }) {
+  const { data: fills } = usePolled<Fill[]>(CHART_FILLS_URL, 15_000, NO_FILLS);
   const snapshot = useFeedStore((s) => snapshotOf(s.feed));
   const host = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -58,6 +67,9 @@ export function PriceChart({ fills, className }: { fills: readonly Fill[]; class
   const [interval, setIntervalKey] = useState<CandleInterval>("15m");
   const [candles, setCandles] = useState<Candle[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [reachedStart, setReachedStart] = useState(false);
+  const olderState = useRef({ loading: false, reachedStart: false, interval: "15m" as CandleInterval });
   const [hover, setHover] = useState<Legend | null>(null);
 
   useEffect(() => {
@@ -103,6 +115,9 @@ export function PriceChart({ fills, className }: { fills: readonly Fill[]; class
   useEffect(() => {
     let cancelled = false;
     setError(null);
+    olderState.current = { loading: false, reachedStart: false, interval };
+    setReachedStart(false);
+    setLoadingOlder(false);
     fetchCandles(interval)
       .then((rows) => {
         if (cancelled) return;
@@ -120,7 +135,7 @@ export function PriceChart({ fills, className }: { fills: readonly Fill[]; class
       const last = candlesRef.current.at(-1);
       if (last === undefined || document.visibilityState !== "visible") return;
       try {
-        const fresh = await fetchCandles(interval, last.start);
+        const fresh = await fetchCandles(interval, { since: last.start });
         if (cancelled || fresh.length === 0) return;
         for (const c of fresh) {
           candleSeries.current?.update(candlePoint(c));
@@ -141,6 +156,47 @@ export function PriceChart({ fills, className }: { fills: readonly Fill[]; class
       setCandles([]);
     };
   }, [interval]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (chart === null) return;
+    const onRange = (range: { from: number; to: number } | null) => {
+      const st = olderState.current;
+      const first = candlesRef.current[0];
+      if (range === null || first === undefined || st.loading || st.reachedStart) return;
+      if (range.from > LOAD_OLDER_WITHIN_BARS) return;
+      const requested = st.interval;
+      st.loading = true;
+      setLoadingOlder(true);
+      fetchCandles(requested, { before: first.start })
+        .then((older) => {
+          if (olderState.current.interval !== requested) return;
+          if (older.length === 0) {
+            olderState.current.reachedStart = true;
+            setReachedStart(true);
+            return;
+          }
+          const view = chart.timeScale().getVisibleLogicalRange();
+          const merged = mergeCandles(candlesRef.current, older);
+          const added = merged.length - candlesRef.current.length;
+          candlesRef.current = merged;
+          candleSeries.current?.setData(merged.map(candlePoint));
+          volumeSeries.current?.setData(merged.map(volumePoint));
+          if (view !== null) chart.timeScale().setVisibleLogicalRange({ from: view.from + added, to: view.to + added });
+          setCandles(merged);
+        })
+        .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+        .finally(() => {
+          if (olderState.current.interval !== requested) return;
+          olderState.current.loading = false;
+          setLoadingOlder(false);
+        });
+    };
+    chart.timeScale().subscribeVisibleLogicalRangeChange(onRange);
+    return () => chart.timeScale().unsubscribeVisibleLogicalRangeChange(onRange);
+  }, []);
+
+  const unmarked = useMemo(() => countUnmarked(fills, candles, interval), [fills, candles, interval]);
 
   const fillMarkers = useMemo(() => buildFillMarkers(fills, candles, interval), [fills, candles, interval]);
 
@@ -200,6 +256,13 @@ export function PriceChart({ fills, className }: { fills: readonly Fill[]; class
           <span><i className="mr-1.5 inline-block size-2.5 rounded-sm border-2 border-up bg-card align-[-1px]" />Up (hollow)</span>
           <span><i className="mr-1.5 inline-block size-2.5 rounded-sm border-2 border-down bg-down align-[-1px]" />Down (filled)</span>
           <span className="text-muted-foreground">Arrows: fills (hover candle for detail) · dashed: limit · dotted: trigger</span>
+          {loadingOlder && <span className="text-muted-foreground" role="status">Loading older bars</span>}
+          {reachedStart && <span className="text-muted-foreground">Start of data</span>}
+          {unmarked > 0 && (
+            <span className="text-muted-foreground" data-testid="unmarked-fills">
+              {unmarked} {unmarked === 1 ? "fill" : "fills"} outside the loaded range{reachedStart ? " (no candles exist)" : ", scroll left to load"}
+            </span>
+          )}
         </div>
         <div ref={host} className="h-[380px] w-full sm:h-[520px]" />
       </div>

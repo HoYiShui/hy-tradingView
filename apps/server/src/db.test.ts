@@ -120,6 +120,8 @@ describe("fills", () => {
     store.saveFills([fill("1", 1000), fill("2", 3000), fill("3", 2000)]);
     expect(store.fills(10).map((f) => f.id)).toEqual(["2", "3", "1"]);
     expect(store.latestFillAt()).toBe(3000);
+    expect(store.fills(10, MarketSymbol.parse("ETH_USDC_PERP"))).toEqual([]);
+    expect(store.fills(10, symbol)).toHaveLength(3);
   });
 });
 

@@ -198,8 +198,12 @@ export function openStore(path: string) {
           upsertFill.run(f.id, f.orderId, f.symbol, f.side, f.price, f.quantity, f.fee, f.liquidity, f.at);
       });
     },
-    fills(limit: number): Fill[] {
-      return (db.prepare(`SELECT * FROM fills ORDER BY at_ms DESC, id DESC LIMIT ?`).all(limit) as Row[]).map(fillOf);
+    fills(limit: number, symbol: MarketSymbol | null = null): Fill[] {
+      const rows =
+        symbol === null
+          ? db.prepare(`SELECT * FROM fills ORDER BY at_ms DESC, id DESC LIMIT ?`).all(limit)
+          : db.prepare(`SELECT * FROM fills WHERE symbol = ? ORDER BY at_ms DESC, id DESC LIMIT ?`).all(symbol, limit);
+      return (rows as Row[]).map(fillOf);
     },
     latestFillAt(): Millis | null {
       const row = db.prepare(`SELECT MAX(at_ms) AS m FROM fills`).get() as Row | undefined;

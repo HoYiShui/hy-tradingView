@@ -29,7 +29,7 @@ export function App() {
           <StatTiles />
           <div className="grid grid-cols-1 items-start gap-2 lg:grid-cols-12">
             <div className="contents lg:col-span-6 lg:flex lg:min-w-0 lg:flex-col lg:gap-2">
-              <PriceChart fills={fills.data} className="order-1 lg:order-none" />
+              <PriceChart className="order-1 lg:order-none" />
               <PerformancePanel days={pnl.data} loaded={pnl.loaded} error={pnl.error} className="order-3 lg:order-none" />
             </div>
             <div className="contents lg:col-span-6 lg:flex lg:min-w-0 lg:flex-col lg:gap-2">

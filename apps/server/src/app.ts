@@ -3,7 +3,7 @@ import { streamSSE } from "hono/streaming";
 import { getConnInfo } from "@hono/node-server/conninfo";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { z } from "zod";
-import { API, CandleInterval, EquityRange, Millis, type Feed } from "@hy/types";
+import { API, CandleInterval, EquityRange, MarketSymbol, Millis, type Feed } from "@hy/types";
 import type { Store } from "./db.js";
 import type { createCandleService } from "./history.js";
 import type { createFeed } from "./feed.js";
@@ -18,7 +18,10 @@ const CandleQuery = z.object({
   limit: z.coerce.number().int().min(1).max(1000).default(500),
 });
 const EquityQuery = z.object({ range: EquityRange.default("7d") });
-const FillQuery = z.object({ limit: z.coerce.number().int().min(1).max(1000).default(200) });
+const FillQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(5000).default(200),
+  symbol: MarketSymbol.optional(),
+});
 
 export function createApp(deps: {
   feed: ReturnType<typeof createFeed>;
@@ -62,7 +65,7 @@ export function createApp(deps: {
   app.get(API.fills, (c) => {
     const q = FillQuery.safeParse(c.req.query());
     if (!q.success) return c.json({ error: "bad query" }, 400);
-    return c.json(deps.store.fills(q.data.limit));
+    return c.json(deps.store.fills(q.data.limit, q.data.symbol ?? null));
   });
 
   app.get(API.equity, (c) => {
