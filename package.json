@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "pnpm -r --parallel --filter @hy/server --filter @hy/web dev",
     "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "tsc -p . && pnpm -r typecheck",
     "test": "vitest run",
     "probe": "tsx scripts/probe-backpack.ts"
   },
