@@ -38,7 +38,7 @@ describe("orderSpans", () => {
 
 describe("payload codec", () => {
   it("round trips fills, funding, candles and orders and sorts the ledger", () => {
-    const fill = { id: "1", orderId: "x", symbol: BTC, side: "sell" as const, price: Price.parse(5), quantity: Qty.parse(2), fee: 0.1 as never, liquidity: "taker" as const, at: Millis.parse(20) };
+    const fill = { id: "1", orderId: "x", symbol: BTC, side: "sell" as const, price: Price.parse(5), quantity: Qty.parse(2), fee: 0.1 as never, liquidity: "taker" as const, market: "perp" as const, closedPnl: null, at: Millis.parse(20) };
     const spans = orderSpans({ orders: [order("a", 10, "Filled")], lastFillAt: new Map([["a", 50]]), now: 1000 });
     const d = decodePayload({
       interval: "1h", symbol: BTC, anchor: { at: Millis.parse(0), equity: 1 as never, marks: {} },

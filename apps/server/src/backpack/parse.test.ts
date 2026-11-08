@@ -7,7 +7,7 @@ import klines from "../../../../scripts/samples/klines.json";
 import openOrders from "../../../../scripts/samples/open-orders.json";
 import positionHistory from "../../../../scripts/samples/position-history.json";
 import positions from "../../../../scripts/samples/positions.json";
-import { buildSnapshot } from "../domain.js";
+import { buildSnapshot } from "./snapshot.js";
 import { Millis } from "@hy/types";
 import {
   parseAccountParts,

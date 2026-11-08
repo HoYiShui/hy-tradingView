@@ -7,7 +7,7 @@ import { buildReplayPayload } from "./replay.js";
 const BTC = MarketSymbol.parse("BTC_USDC_PERP");
 const H = 3_600_000;
 const fill = (id: string, at: number): Fill => ({
-  id, orderId: `o${id}`, symbol: BTC, side: "buy", price: Price.parse(100), quantity: Qty.parse(1), fee: Usd.parse(0.1), liquidity: "maker", at: Millis.parse(at),
+  id, orderId: `o${id}`, symbol: BTC, side: "buy", price: Price.parse(100), quantity: Qty.parse(1), fee: Usd.parse(0.1), liquidity: "maker", at: Millis.parse(at), market: "perp", closedPnl: null,
 });
 const snapshot = (asOf: number): AccountSnapshot => ({
   exchange: "backpack", asOf: Millis.parse(asOf),

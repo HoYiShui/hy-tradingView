@@ -31,7 +31,7 @@ export interface Decoded {
 export function decodePayload(p: Payload): Decoded {
   const fills = p.fills.map(
     ([id, symbol, dir, price, quantity, fee, at]): Fill => ({
-      id, orderId: "", symbol, side: dir > 0 ? "buy" : "sell", price, quantity, fee, liquidity: "taker", at,
+      id, orderId: "", symbol, side: dir > 0 ? "buy" : "sell", price, quantity, fee, liquidity: "taker", market: "perp", closedPnl: null, at,
     }),
   );
   const ledger = sortLedger([

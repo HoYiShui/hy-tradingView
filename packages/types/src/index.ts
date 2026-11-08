@@ -15,15 +15,36 @@ export type MarketSymbol = z.infer<typeof MarketSymbol>;
 export const Day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).brand<"Day">();
 export type Day = z.infer<typeof Day>;
 
-export const Exchange = z.literal("backpack");
+export const EXCHANGES = ["backpack", "hyperliquid"] as const;
+export const Exchange = z.enum(EXCHANGES);
 export type Exchange = z.infer<typeof Exchange>;
 
 export const Side = z.enum(["buy", "sell"]);
 export type Side = z.infer<typeof Side>;
 
-export const CANDLE_INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"] as const;
+export const CANDLE_INTERVALS = ["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "8h", "12h", "1d", "3d", "1w", "1M"] as const;
 export const CandleInterval = z.enum(CANDLE_INTERVALS);
 export type CandleInterval = z.infer<typeof CandleInterval>;
+
+const MINUTE = 60_000;
+const DAY = 86_400_000;
+// A month has no fixed length. This step is only used to align and size backfill ranges.
+export const INTERVAL_MS: Record<CandleInterval, number> = {
+  "1m": MINUTE,
+  "3m": 3 * MINUTE,
+  "5m": 5 * MINUTE,
+  "15m": 15 * MINUTE,
+  "30m": 30 * MINUTE,
+  "1h": 60 * MINUTE,
+  "2h": 120 * MINUTE,
+  "4h": 240 * MINUTE,
+  "8h": 480 * MINUTE,
+  "12h": 720 * MINUTE,
+  "1d": DAY,
+  "3d": 3 * DAY,
+  "1w": 7 * DAY,
+  "1M": 30 * DAY,
+};
 
 export const Candle = z.object({
   start: Millis,
@@ -44,6 +65,8 @@ export const Fill = z.object({
   quantity: Qty,
   fee: Usd,
   liquidity: z.enum(["maker", "taker"]),
+  market: z.enum(["perp", "spot"]),
+  closedPnl: Usd.nullable(),
   at: Millis,
 });
 export type Fill = z.infer<typeof Fill>;
@@ -54,8 +77,10 @@ export const Position = z.object({
   quantity: Qty,
   entryPrice: Price,
   markPrice: Price,
-  breakEvenPrice: Price,
+  breakEvenPrice: Price.nullable(),
   liquidationPrice: Price.nullable(),
+  margin: z.enum(["cross", "isolated"]),
+  leverage: z.number().nullable(),
   notional: Usd,
   openPnl: Usd,
   cumulativeFunding: Usd,
@@ -89,6 +114,7 @@ export const OpenOrder = z.discriminatedUnion("kind", [
   z.object({
     ...OrderBase,
     kind: z.literal("trigger"),
+    purpose: z.enum(["stop", "takeProfit", "other"]),
     triggerPrice: Price,
     execution: z.enum(["market", "limit"]),
     size: TriggerSize,
@@ -103,7 +129,7 @@ export const AccountState = z.object({
   initialMarginFraction: z.number(),
   maintenanceMarginFraction: z.number(),
   marginFraction: z.number().nullable(),
-  leverageLimit: z.number(),
+  leverageLimit: z.number().nullable(),
   liquidating: z.boolean(),
 });
 export type AccountState = z.infer<typeof AccountState>;
@@ -231,9 +257,11 @@ export type Surface = z.infer<typeof Surface>;
 export const AccountInfo = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
-  exchange: z.string().min(1),
+  exchange: Exchange,
   surfaces: z.array(Surface).min(1),
   chartSymbol: MarketSymbol,
+  intervals: z.array(CandleInterval).min(1),
+  history: z.object({ candleDepthBars: z.number().int().positive().nullable(), fillDepth: z.number().int().positive().nullable() }),
 });
 export type AccountInfo = z.infer<typeof AccountInfo>;
 export const AccountList = z.array(AccountInfo);

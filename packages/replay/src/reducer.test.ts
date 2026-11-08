@@ -6,11 +6,11 @@ import { buildTimeline, seek, START } from "./timeline.js";
 const BTC = MarketSymbol.parse("BTC_USDC_PERP");
 const ETH = MarketSymbol.parse("ETH_USDC_PERP");
 let n = 0;
-const fill = (at: number, side: "buy" | "sell", quantity: number, price: number, fee = 0, symbol = BTC): LedgerEvent => ({
+const fill = (at: number, side: "buy" | "sell", quantity: number, price: number, fee = 0, symbol = BTC, market: "perp" | "spot" = "perp"): LedgerEvent => ({
   kind: "fill",
   fill: {
     id: String(++n), orderId: "o", symbol, side, price: Price.parse(price), quantity: Qty.parse(quantity),
-    fee: Usd.parse(fee), liquidity: "taker", at: Millis.parse(at),
+    fee: Usd.parse(fee), liquidity: "taker", market, closedPnl: null, at: Millis.parse(at),
   },
 });
 const funding = (at: number, amount: number, symbol = BTC): LedgerEvent => ({
@@ -53,7 +53,7 @@ describe("reduceLedger", () => {
   });
 
   it("ignores spot fills: no perp position and no perp fee", () => {
-    const b = reduceLedger([fill(1, "buy", 5, 10, 0.1, MarketSymbol.parse("SOL_USDC"))]);
+    const b = reduceLedger([fill(1, "buy", 5, 10, 0.1, MarketSymbol.parse("SOL_USDC"), "spot")]);
     expect(b.lots).toEqual({});
     expect(b.fees).toBe(0);
   });

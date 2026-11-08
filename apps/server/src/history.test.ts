@@ -1,17 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { MarketSymbol, Millis } from "@hy/types";
+import { INTERVAL_MS, MarketSymbol, Millis } from "@hy/types";
 import { openStore } from "./db.js";
 import type { ExchangeReader } from "./exchange.js";
-import { backfillStart, createCandleService, INTERVAL_MS } from "./history.js";
+import { backfillStart, createCandleService } from "./history.js";
 
 const symbol = MarketSymbol.parse("BTC_USDC_PERP");
 const H = INTERVAL_MS["1h"];
 const NOW = 100_000 * H + 1234;
 const latest = { since: null, before: null, limit: 500 };
 
-function fakeReader() {
+function fakeReader(candleDepthBars: number | null = null) {
   const calls: { from: number; to: number }[] = [];
   const reader = {
+    capabilities: { minCandleRefreshMs: 2000, history: { candleDepthBars, fillDepth: null } },
     async fetchCandles({ from, to }: { from: number; to: number }) {
       calls.push({ from, to });
       await new Promise((r) => setTimeout(r, 2));
@@ -44,7 +45,7 @@ describe("candle service", () => {
     const { reader, calls } = fakeReader();
     const store = openStore(":memory:");
     const fillAt = NOW - 2500 * H;
-    store.saveFills([{ id: "1", orderId: "o", symbol, side: "buy", price: 1 as never, quantity: 1 as never, fee: 0 as never, liquidity: "maker", at: Millis.parse(fillAt) }]);
+    store.saveFills([{ id: "1", orderId: "o", symbol, side: "buy", price: 1 as never, quantity: 1 as never, fee: 0 as never, liquidity: "maker", at: Millis.parse(fillAt), market: "perp", closedPnl: null }]);
     const service = createCandleService({ reader, store, symbol, now: () => NOW, pauseMs: 0 });
     await service.get("1h", latest);
     await idle(300);
@@ -74,12 +75,35 @@ describe("candle service", () => {
   });
 });
 
+describe("candle history depth limit", () => {
+  it("stops at the exchange boundary, marks it covered and never refetches", async () => {
+    const { reader, calls } = fakeReader(1500);
+    const store = openStore(":memory:");
+    store.saveFills([{ id: "1", orderId: "o", symbol, side: "buy", price: 1 as never, quantity: 1 as never, fee: 0 as never, liquidity: "maker", at: Millis.parse(NOW - 4000 * H), market: "perp", closedPnl: null }]);
+    const service = createCandleService({ reader, store, symbol, now: () => NOW, pauseMs: 0 });
+    await service.get("1h", latest);
+    await idle(300);
+    const oldest = store.candles({ symbol, interval: "1h", since: null, before: Millis.parse(NOW), limit: 10_000 })[0];
+    expect(oldest?.start).toBeGreaterThanOrEqual(NOW - 1500 * H - H);
+    const before = calls.length;
+    const second = createCandleService({ reader, store, symbol, now: () => NOW + 5000, pauseMs: 0 });
+    await second.get("1h", latest);
+    await idle(300);
+    expect(calls.length - before).toBe(1);
+    store.close();
+  });
+});
+
 describe("backfillStart", () => {
+  it("never reaches past the exchange depth", () => {
+    expect(backfillStart({ now: NOW, step: H, earliestFill: NOW - 9000 * H, depthBars: 5000 })).toBe(NOW - 5000 * H);
+  });
+
   it("starts one bar before the earliest fill, bounded by the bar cap and never later than the tail window", () => {
     const step = H;
-    expect(backfillStart({ now: NOW, step, earliestFill: NOW - 3000 * H })).toBeLessThan(NOW - 3000 * H + 1);
-    expect(backfillStart({ now: NOW, step, earliestFill: NOW - 10 * H })).toBe(NOW - 1000 * H);
-    expect(backfillStart({ now: NOW, step, earliestFill: null })).toBe(NOW - 1000 * H);
-    expect(backfillStart({ now: NOW, step, earliestFill: NOW - 1e9 * H })).toBe(NOW - 60_000 * H);
+    expect(backfillStart({ now: NOW, step, earliestFill: NOW - 3000 * H, depthBars: null })).toBeLessThan(NOW - 3000 * H + 1);
+    expect(backfillStart({ now: NOW, step, earliestFill: NOW - 10 * H, depthBars: null })).toBe(NOW - 1000 * H);
+    expect(backfillStart({ now: NOW, step, earliestFill: null, depthBars: null })).toBe(NOW - 1000 * H);
+    expect(backfillStart({ now: NOW, step, earliestFill: NOW - 1e9 * H, depthBars: null })).toBe(NOW - 60_000 * H);
   });
 });

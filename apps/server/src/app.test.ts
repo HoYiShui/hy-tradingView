@@ -1,18 +1,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Fill, MarketSymbol, Millis, Price, Qty, Usd, type AccountInfo, type AccountSnapshot, type Surface } from "@hy/types";
+import { Fill, MarketSymbol, Millis, Price, Qty, Usd, type AccountInfo, type Exchange, type AccountSnapshot, type Surface } from "@hy/types";
 import { decodePayload } from "@hy/replay";
 import { createAccountContext, planFor, startAccount, type AccountContext } from "./accounts.js";
 import { createApp } from "./app.js";
 import type { AccountConfig } from "./config.js";
 import { openStore } from "./db.js";
-import type { ExchangeReader } from "./exchange.js";
+import type { ExchangeCapabilities, ExchangeReader } from "./exchange.js";
 
 const NOW = Date.now();
 const CLIENT = { incoming: { socket: { remoteAddress: "10.0.0.1" } } };
 const sym = (s: string) => MarketSymbol.parse(s);
 
 const fill = (id: string, symbol: MarketSymbol, at: number): Fill => ({
-  id, orderId: `o${id}`, symbol, side: "buy", price: Price.parse(100), quantity: Qty.parse(1), fee: Usd.parse(0.1), liquidity: "maker", at: Millis.parse(at),
+  id, orderId: `o${id}`, symbol, side: "buy", price: Price.parse(100), quantity: Qty.parse(1), fee: Usd.parse(0.1), liquidity: "maker", at: Millis.parse(at), market: "perp", closedPnl: null,
 });
 const snapshot = (equity: number): AccountSnapshot => ({
   exchange: "backpack", asOf: Millis.parse(NOW),
@@ -20,17 +20,29 @@ const snapshot = (equity: number): AccountSnapshot => ({
   positions: [], openOrders: [], metrics: { grossNotional: Usd.parse(0), netNotional: Usd.parse(0), leverage: 0, openPnl: Usd.parse(0) },
 });
 
-function fakeReader(input: { exchange: string; chartSymbol: string; equity: number; fillIds: string[] }) {
+const CAPABILITIES: ExchangeCapabilities = {
+  intervals: ["15m", "1h", "4h"],
+  history: { candleDepthBars: null, fillDepth: null },
+  minLivePollMs: 0,
+  minSyncMs: 0,
+  minCandleRefreshMs: 0,
+};
+
+function fakeReader(input: { exchange: Exchange; chartSymbol: string; equity: number; fillIds: string[] }) {
   const calls: string[] = [];
   const chartSymbol = sym(input.chartSymbol);
   const reader: ExchangeReader = {
     exchange: input.exchange,
     chartSymbol,
+    capabilities: CAPABILITIES,
     fetchLive: async () => (calls.push("live"), snapshot(input.equity)),
     fetchFills: async () => (calls.push("fills"), input.fillIds.map((id, i) => fill(id, chartSymbol, NOW - (100 - i) * 1000))),
     fetchFunding: async () => (calls.push("funding"), []),
     fetchPositionHistory: async () => (calls.push("positions"), []),
-    fetchOrderHistory: async () => (calls.push("orders"), []),
+    orderHistory: async function* () {
+      calls.push("orders");
+      yield [];
+    },
     fetchCandles: async () => (calls.push("candles"), []),
   };
   return { reader, calls };
@@ -67,7 +79,7 @@ async function boot(accounts: { config: AccountConfig; reader: ReturnType<typeof
 
 describe("per-account routing", () => {
   const live = () => ({ config: config("live", ["dashboard"]), reader: fakeReader({ exchange: "backpack", chartSymbol: "BTC_USDC_PERP", equity: 1002, fillIds: ["L1", "L2"] }) });
-  const hl = () => ({ config: config("hl", ["dashboard", "replay"]), reader: fakeReader({ exchange: "fakeperp", chartSymbol: "BTC-PERP", equity: 30, fillIds: ["H1", "H2", "H3"] }) });
+  const hl = () => ({ config: config("hl", ["dashboard", "replay"]), reader: fakeReader({ exchange: "hyperliquid", chartSymbol: "BTC-PERP", equity: 30, fillIds: ["H1", "H2", "H3"] }) });
   const test = () => ({ config: config("test", ["replay"]), reader: fakeReader({ exchange: "backpack", chartSymbol: "BTC_USDC_PERP", equity: 7, fillIds: ["T1"] }) });
 
   it("lists accounts with the chart market owned by each adapter", async () => {
@@ -75,7 +87,7 @@ describe("per-account routing", () => {
     const list = (await (await get("/api/accounts")).json()) as AccountInfo[];
     expect(list.map((a) => [a.id, a.exchange, a.chartSymbol, a.surfaces])).toEqual([
       ["live", "backpack", "BTC_USDC_PERP", ["dashboard"]],
-      ["hl", "fakeperp", "BTC-PERP", ["dashboard", "replay"]],
+      ["hl", "hyperliquid", "BTC-PERP", ["dashboard", "replay"]],
     ]);
   });
 
@@ -145,22 +157,24 @@ describe("per-account routing", () => {
   });
 });
 
+const PACING = { minLivePollMs: 0, minSyncMs: 0 };
+
 describe("planFor", () => {
   it("polls a replay-only account slowly and skips dashboard-only work", () => {
-    const p = planFor(["replay"]);
+    const p = planFor(["replay"], PACING);
     expect(p.pollMs).toBeGreaterThanOrEqual(30_000);
     expect(p.recordEquity).toBe(false);
     expect(p.jobs.map((j) => j.name)).toEqual(["fill sync", "funding sync", "order sync"]);
   });
 
   it("polls a dashboard account fast, records equity and skips order history", () => {
-    const p = planFor(["dashboard"]);
+    const p = planFor(["dashboard"], PACING);
     expect(p.pollMs).toBe(2_000);
     expect(p.recordEquity).toBe(true);
     expect(p.jobs.map((j) => j.name)).toEqual(["fill sync", "funding sync", "position sync"]);
   });
 
   it("unions the jobs of both surfaces without repeats", () => {
-    expect(planFor(["dashboard", "replay"]).jobs.map((j) => j.name)).toEqual(["fill sync", "funding sync", "position sync", "order sync"]);
+    expect(planFor(["dashboard", "replay"], PACING).jobs.map((j) => j.name)).toEqual(["fill sync", "funding sync", "position sync", "order sync"]);
   });
 });

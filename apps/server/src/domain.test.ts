@@ -9,6 +9,8 @@ const position = (direction: "long" | "short", notional: number, openPnl: number
   entryPrice: Price.parse(100),
   markPrice: Price.parse(100),
   breakEvenPrice: Price.parse(100),
+  margin: "cross",
+  leverage: null,
   liquidationPrice: null,
   notional: Usd.parse(notional),
   openPnl: Usd.parse(openPnl),

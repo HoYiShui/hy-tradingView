@@ -14,6 +14,7 @@ import {
   type TriggerSize,
   Usd,
 } from "@hy/types";
+import type { FundingPayment, PositionRecord } from "../exchange.js";
 import {
   RawAccount,
   RawCollateral,
@@ -25,17 +26,6 @@ import {
   RawPosition,
   RawPositionHistory,
 } from "./raw.js";
-
-export type FundingPayment = { symbol: MarketSymbol; at: Millis; amount: Usd; rate: number };
-export type PositionRecord = {
-  id: string;
-  symbol: MarketSymbol;
-  openedAt: Millis;
-  closedAt: Millis | null;
-  realizedPnl: Usd;
-  fees: Usd;
-  funding: Usd;
-};
 
 export type AccountParts = {
   account: z.infer<typeof RawAccount>;
@@ -55,6 +45,8 @@ export function parsePosition(input: unknown): Position | null {
     markPrice: Price.parse(raw.markPrice),
     breakEvenPrice: Price.parse(raw.breakEvenPrice),
     liquidationPrice: raw.estLiquidationPrice > 0 ? Price.parse(raw.estLiquidationPrice) : null,
+    margin: "cross",
+    leverage: null,
     notional: Usd.parse(Math.abs(raw.netExposureNotional)),
     openPnl: Usd.parse(raw.pnlRealized + raw.pnlUnrealized),
     cumulativeFunding: Usd.parse(raw.cumulativeFundingPayment),
@@ -81,6 +73,7 @@ export function parseOpenOrder(input: unknown): OpenOrder {
     return {
       ...base,
       kind: "trigger",
+      purpose: "other",
       triggerPrice: Price.parse(raw.triggerPrice),
       execution: raw.orderType === "Market" ? "market" : "limit",
       size: triggerSize(raw),
@@ -135,6 +128,8 @@ export function parseFill(input: unknown): Fill {
     quantity: Qty.parse(raw.quantity),
     fee: Usd.parse(raw.fee),
     liquidity: raw.isMaker ? "maker" : "taker",
+    market: raw.symbol.endsWith("_PERP") ? "perp" : "spot",
+    closedPnl: null,
     at: Millis.parse(raw.timestamp),
   };
 }

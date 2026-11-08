@@ -115,6 +115,8 @@ describe("fills", () => {
       fee: 0 as never,
       liquidity: "maker" as const,
       at: Millis.parse(ms),
+      market: "perp" as const,
+      closedPnl: null,
     });
     expect(store.latestFillAt()).toBeNull();
     store.saveFills([fill("1", 1000), fill("2", 3000), fill("3", 2000)]);
@@ -171,5 +173,39 @@ describe("equity snapshots", () => {
     store = openStore(":memory:");
     expect(downsampleStep(0)).toBe(EQUITY_BUCKET_MS);
     expect(downsampleStep(3_600_000)).toBe(EQUITY_BUCKET_MS);
+  });
+});
+
+describe("fills schema migration", () => {
+  it("adds market and closed pnl to a database made before them and marks spot fills", async () => {
+    const { DatabaseSync } = await import("node:sqlite");
+    const { mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const path = join(mkdtempSync(join(tmpdir(), "hy-db-")), "old.db");
+    const old = new DatabaseSync(path);
+    old.exec(`CREATE TABLE fills (
+      id TEXT PRIMARY KEY, order_id TEXT NOT NULL, symbol TEXT NOT NULL, side TEXT NOT NULL,
+      price REAL NOT NULL, quantity REAL NOT NULL, fee REAL NOT NULL, liquidity TEXT NOT NULL, at_ms INTEGER NOT NULL
+    )`);
+    const insert = old.prepare("INSERT INTO fills VALUES (?, 'o', ?, 'buy', 1, 1, 0, 'maker', ?)");
+    insert.run("a", "BTC_USDC_PERP", 1);
+    insert.run("b", "SOL_USDC", 2);
+    old.close();
+    store = openStore(path);
+    const byId = Object.fromEntries(store.fills(10, null).map((f) => [f.id, f]));
+    expect(byId["a"]).toMatchObject({ market: "perp", closedPnl: null });
+    expect(byId["b"]?.market).toBe("spot");
+  });
+
+  it("keeps fill order stable when the same fill is saved again", () => {
+    store = openStore(":memory:");
+    const fill = (id: string, closedPnl: number | null) => ({
+      id, orderId: "o", symbol, side: "buy" as const, price: 1 as never, quantity: 1 as never, fee: 0 as never,
+      liquidity: "maker" as const, at: Millis.parse(1000), market: "perp" as const, closedPnl: closedPnl as never,
+    });
+    store.saveFills([fill("x", null), fill("y", 5)]);
+    store.saveFills([fill("x", 3)]);
+    expect(store.fills(10, null).map((f) => [f.id, f.closedPnl])).toEqual([["y", 5], ["x", 3]]);
   });
 });

@@ -18,7 +18,7 @@ import {
   type CandleInterval,
 } from "@hy/types";
 import { mergeRanges, type Range } from "./coverage.js";
-import type { FundingPayment, PositionRecord } from "./backpack/parse.js";
+import type { FundingPayment, PositionRecord } from "./exchange.js";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS candles (
@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS candle_coverage (
 ) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS fills (
   id TEXT PRIMARY KEY, order_id TEXT NOT NULL, symbol TEXT NOT NULL, side TEXT NOT NULL,
-  price REAL NOT NULL, quantity REAL NOT NULL, fee REAL NOT NULL, liquidity TEXT NOT NULL, at_ms INTEGER NOT NULL
+  price REAL NOT NULL, quantity REAL NOT NULL, fee REAL NOT NULL, liquidity TEXT NOT NULL, at_ms INTEGER NOT NULL,
+  market TEXT NOT NULL DEFAULT 'perp', closed_pnl REAL
 );
 CREATE INDEX IF NOT EXISTS fills_at ON fills (at_ms);
 CREATE TABLE IF NOT EXISTS funding (
@@ -56,6 +57,8 @@ CREATE TABLE IF NOT EXISTS positions (
 const DAILY_PNL_SQL = `
 WITH events AS (
   SELECT closed_ms AS at_ms, realized AS trading, 0.0 AS funding FROM positions WHERE closed_ms IS NOT NULL
+  UNION ALL
+  SELECT at_ms, closed_pnl, 0.0 FROM fills WHERE closed_pnl IS NOT NULL
   UNION ALL
   SELECT at_ms, 0.0, amount FROM funding
 ), daily AS (
@@ -90,6 +93,14 @@ export function downsampleStep(spanMs: number): number {
   return Math.max(EQUITY_BUCKET_MS, Math.ceil(raw / EQUITY_BUCKET_MS) * EQUITY_BUCKET_MS);
 }
 
+function addFillColumns(db: DatabaseSync): void {
+  const columns = (db.prepare("PRAGMA table_info(fills)").all() as Row[]).map((c) => c.name);
+  if (columns.includes("market")) return;
+  db.exec("ALTER TABLE fills ADD COLUMN market TEXT NOT NULL DEFAULT 'perp'");
+  db.exec("ALTER TABLE fills ADD COLUMN closed_pnl REAL");
+  db.exec("UPDATE fills SET market = 'spot' WHERE symbol NOT LIKE '%\\_PERP' ESCAPE '\\'");
+}
+
 type Row = Record<string, string | number | null>;
 
 export type Store = ReturnType<typeof openStore>;
@@ -99,13 +110,20 @@ export function openStore(path: string) {
   const db = new DatabaseSync(path);
   db.exec("PRAGMA journal_mode = WAL");
   db.exec(SCHEMA);
+  addFillColumns(db);
 
   const upsertCandle = db.prepare(
     `INSERT INTO candles VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (symbol, interval, start_ms) DO UPDATE SET
        open = excluded.open, high = excluded.high, low = excluded.low, close = excluded.close, volume = excluded.volume`,
   );
-  const upsertFill = db.prepare(`INSERT OR REPLACE INTO fills VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  const upsertFill = db.prepare(
+    `INSERT INTO fills VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (id) DO UPDATE SET
+       order_id = excluded.order_id, symbol = excluded.symbol, side = excluded.side, price = excluded.price,
+       quantity = excluded.quantity, fee = excluded.fee, liquidity = excluded.liquidity, at_ms = excluded.at_ms,
+       market = excluded.market, closed_pnl = excluded.closed_pnl`,
+  );
   const upsertFunding = db.prepare(`INSERT OR REPLACE INTO funding VALUES (?, ?, ?, ?)`);
   const upsertOrder = db.prepare(`INSERT OR REPLACE INTO orders VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const upsertPosition = db.prepare(`INSERT OR REPLACE INTO positions VALUES (?, ?, ?, ?, ?, ?, ?)`);
@@ -139,6 +157,8 @@ export function openStore(path: string) {
     quantity: Qty.parse(r.quantity),
     fee: Usd.parse(r.fee),
     liquidity: r.liquidity === "maker" ? "maker" : "taker",
+    market: r.market === "spot" ? "spot" : "perp",
+    closedPnl: r.closed_pnl === null ? null : Usd.parse(r.closed_pnl),
     at: Millis.parse(r.at_ms),
   });
 
@@ -203,14 +223,14 @@ export function openStore(path: string) {
     saveFills(fills: readonly Fill[]): void {
       inTransaction(() => {
         for (const f of fills)
-          upsertFill.run(f.id, f.orderId, f.symbol, f.side, f.price, f.quantity, f.fee, f.liquidity, f.at);
+          upsertFill.run(f.id, f.orderId, f.symbol, f.side, f.price, f.quantity, f.fee, f.liquidity, f.at, f.market, f.closedPnl);
       });
     },
     fills(limit: number, symbol: MarketSymbol | null = null): Fill[] {
       const rows =
         symbol === null
-          ? db.prepare(`SELECT * FROM fills ORDER BY at_ms DESC, id DESC LIMIT ?`).all(limit)
-          : db.prepare(`SELECT * FROM fills WHERE symbol = ? ORDER BY at_ms DESC, id DESC LIMIT ?`).all(symbol, limit);
+          ? db.prepare(`SELECT * FROM fills ORDER BY at_ms DESC, rowid DESC LIMIT ?`).all(limit)
+          : db.prepare(`SELECT * FROM fills WHERE symbol = ? ORDER BY at_ms DESC, rowid DESC LIMIT ?`).all(symbol, limit);
       return (rows as Row[]).map(fillOf);
     },
     latestFillAt(): Millis | null {
@@ -260,7 +280,7 @@ export function openStore(path: string) {
       return row?.a == null || row?.b == null ? null : { first: Millis.parse(row.a), last: Millis.parse(row.b) };
     },
     allFills(): Fill[] {
-      return (db.prepare(`SELECT * FROM fills ORDER BY at_ms, id`).all() as Row[]).map(fillOf);
+      return (db.prepare(`SELECT * FROM fills ORDER BY at_ms, rowid`).all() as Row[]).map(fillOf);
     },
     allFunding(): { symbol: MarketSymbol; at: Millis; amount: Usd }[] {
       return (db.prepare(`SELECT symbol, at_ms, amount FROM funding ORDER BY at_ms`).all() as Row[]).map((r) => ({

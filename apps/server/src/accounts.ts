@@ -3,7 +3,7 @@ import type { AccountInfo, Surface } from "@hy/types";
 import { hasSurface, type AccountConfig } from "./config.js";
 import { equityBucket, openStore, type Store } from "./db.js";
 import { repoRoot } from "./env.js";
-import type { ExchangeReader } from "./exchange.js";
+import type { ExchangeCapabilities, ExchangeReader } from "./exchange.js";
 import { createReader } from "./exchanges.js";
 import { createFeed } from "./feed.js";
 import { createCandleService, syncFills, syncFunding, syncOrders, syncPositionHistory } from "./history.js";
@@ -26,6 +26,7 @@ export function resolveAccount(registry: Registry, surface: Surface, id: string 
 }
 
 type Job = { name: string; everyMs: number; run: (ctx: AccountContext) => Promise<void> };
+type Pacing = Pick<ExchangeCapabilities, "minLivePollMs" | "minSyncMs">;
 
 const fills: Job = { name: "fill sync", everyMs: 5_000, run: (c) => syncFills(c.reader, c.store) };
 const funding: Job = { name: "funding sync", everyMs: 60_000, run: (c) => syncFunding(c.reader, c.store) };
@@ -42,12 +43,12 @@ const ANCHOR_POLL_MS = 30_000;
 
 export type Plan = { pollMs: number; recordEquity: boolean; jobs: Job[] };
 
-export function planFor(surfaces: readonly Surface[]): Plan {
+export function planFor(surfaces: readonly Surface[], pacing: Pacing): Plan {
   const dashboard = hasSurface({ surfaces }, "dashboard");
   return {
-    pollMs: dashboard ? DASHBOARD_POLL_MS : ANCHOR_POLL_MS,
+    pollMs: Math.max(dashboard ? DASHBOARD_POLL_MS : ANCHOR_POLL_MS, pacing.minLivePollMs),
     recordEquity: dashboard,
-    jobs: [...new Set(surfaces.flatMap((s) => SURFACE_JOBS[s]))],
+    jobs: [...new Set(surfaces.flatMap((s) => SURFACE_JOBS[s]))].map((j) => ({ ...j, everyMs: Math.max(j.everyMs, pacing.minSyncMs) })),
   };
 }
 
@@ -68,10 +69,18 @@ export function createAccountContext(account: AccountConfig, deps: RegistryDeps)
   const store = deps.storeFor(account);
   const log = (msg: string) => deps.log(`${account.id}: ${msg}`);
   return {
-    info: { id: account.id, label: account.label, exchange: reader.exchange, surfaces: account.surfaces, chartSymbol: reader.chartSymbol },
+    info: {
+      id: account.id,
+      label: account.label,
+      exchange: reader.exchange,
+      surfaces: account.surfaces,
+      chartSymbol: reader.chartSymbol,
+      intervals: [...reader.capabilities.intervals],
+      history: reader.capabilities.history,
+    },
     reader,
     store,
-    feed: createFeed(reader, { pollMs: planFor(account.surfaces).pollMs, log }),
+    feed: createFeed(reader, { pollMs: planFor(account.surfaces, reader.capabilities).pollMs, log }),
     candles: createCandleService({ reader, store, symbol: reader.chartSymbol, log }),
   };
 }
@@ -94,7 +103,7 @@ function every(ms: number, name: string, log: (msg: string) => void, work: () =>
 }
 
 export function startAccount(ctx: AccountContext, log: (msg: string) => void): void {
-  const plan = planFor(ctx.info.surfaces);
+  const plan = planFor(ctx.info.surfaces, ctx.reader.capabilities);
   for (const job of plan.jobs) every(job.everyMs, `${ctx.info.id} ${job.name}`, log, () => job.run(ctx));
   if (plan.recordEquity) {
     let last = -1;

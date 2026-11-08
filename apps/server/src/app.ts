@@ -59,7 +59,7 @@ export function createApp(deps: { registry: Registry; webRoot: string | null }) 
 
   dashboard("candles", async (c, a) => {
     const q = CandleQuery.safeParse(c.req.query());
-    if (!q.success) return c.json({ error: "bad query" }, 400);
+    if (!q.success || !a.info.intervals.includes(q.data.interval)) return c.json({ error: "bad query" }, 400);
     const since = q.data.since === undefined ? null : Millis.parse(q.data.since);
     const before = q.data.before === undefined ? null : Millis.parse(q.data.before);
     return c.json(await a.candles.get(q.data.interval, { since, before, limit: q.data.limit }));
@@ -84,6 +84,7 @@ export function createApp(deps: { registry: Registry; webRoot: string | null }) 
     if (!q.success) return c.json({ error: "bad query" }, 400);
     const account = resolveAccount(deps.registry, "replay", q.data.account);
     if (account === null) return c.json({ error: "unknown account" }, 404);
+    if (!account.info.intervals.includes(q.data.interval)) return c.json({ error: "bad query" }, 400);
     const feed = account.feed.current();
     if (feed.kind !== "live" && feed.kind !== "stale") return c.json({ error: "no snapshot yet" }, 503);
     await account.candles.refresh(q.data.interval);

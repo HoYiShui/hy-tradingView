@@ -1,13 +1,33 @@
-import type { AccountSnapshot, Candle, CandleInterval, Fill, MarketSymbol, OrderRecord, Millis } from "@hy/types";
-import type { FundingPayment, PositionRecord } from "./backpack/parse.js";
+import type { AccountInfo, AccountSnapshot, Candle, CandleInterval, Exchange, Fill, MarketSymbol, Millis, OrderRecord, Usd } from "@hy/types";
+
+export type FundingPayment = { symbol: MarketSymbol; at: Millis; amount: Usd; rate: number };
+
+export type PositionRecord = {
+  id: string;
+  symbol: MarketSymbol;
+  openedAt: Millis;
+  closedAt: Millis | null;
+  realizedPnl: Usd;
+  fees: Usd;
+  funding: Usd;
+};
+
+export type ExchangeCapabilities = {
+  intervals: readonly [CandleInterval, ...CandleInterval[]];
+  history: AccountInfo["history"];
+  minLivePollMs: number;
+  minSyncMs: number;
+  minCandleRefreshMs: number;
+};
 
 export interface ExchangeReader {
-  readonly exchange: string;
+  readonly exchange: Exchange;
   readonly chartSymbol: MarketSymbol;
+  readonly capabilities: ExchangeCapabilities;
   fetchLive(): Promise<AccountSnapshot>;
-  fetchFills(input: { from: Millis | null; limit: number; offset: number }): Promise<Fill[]>;
-  fetchFunding(input: { from: Millis | null; limit: number; offset: number }): Promise<FundingPayment[]>;
-  fetchPositionHistory(input: { limit: number; offset: number }): Promise<PositionRecord[]>;
-  fetchOrderHistory(input: { limit: number; offset: number }): Promise<OrderRecord[]>;
+  fetchFills(input: { from: Millis | null }): Promise<Fill[]>;
+  fetchFunding(input: { from: Millis | null }): Promise<FundingPayment[]>;
+  fetchPositionHistory(): Promise<PositionRecord[]>;
+  orderHistory(): AsyncIterable<OrderRecord[]>;
   fetchCandles(input: { symbol: MarketSymbol; interval: CandleInterval; from: Millis; to: Millis }): Promise<Candle[]>;
 }

@@ -1,7 +1,7 @@
-import { MarketSymbol, Millis } from "@hy/types";
-import { buildSnapshot } from "../domain.js";
-import type { ExchangeReader } from "../exchange.js";
+import { MarketSymbol, Millis, type OrderRecord } from "@hy/types";
+import type { ExchangeCapabilities, ExchangeReader } from "../exchange.js";
 import type { BackpackClient } from "./client.js";
+import { buildSnapshot } from "./snapshot.js";
 import {
   parseAccountParts,
   parseCandles,
@@ -15,6 +15,26 @@ import {
 
 const ACCOUNT_TTL_MS = 60_000;
 const CHART_SYMBOL = MarketSymbol.parse("BTC_USDC_PERP");
+const PAGE = 200;
+const PAGE_PAUSE_MS = 500;
+
+export const BACKPACK_CAPABILITIES: ExchangeCapabilities = {
+  intervals: ["1m", "5m", "15m", "1h", "4h", "1d", "1w"],
+  history: { candleDepthBars: null, fillDepth: null },
+  minLivePollMs: 2_000,
+  minSyncMs: 5_000,
+  minCandleRefreshMs: 2_000,
+};
+
+async function pageAll<T>(fetchPage: (offset: number) => Promise<T[]>): Promise<T[]> {
+  const all: T[] = [];
+  for (let offset = 0; ; offset += PAGE) {
+    const page = await fetchPage(offset);
+    all.push(...page);
+    if (page.length < PAGE) return all;
+    await new Promise((r) => setTimeout(r, PAGE_PAUSE_MS));
+  }
+}
 
 export function createBackpackReader(client: BackpackClient, now: () => number = Date.now): ExchangeReader {
   let accountCache: { at: number; value: unknown } | null = null;
@@ -29,6 +49,7 @@ export function createBackpackReader(client: BackpackClient, now: () => number =
   return {
     exchange: "backpack",
     chartSymbol: CHART_SYMBOL,
+    capabilities: BACKPACK_CAPABILITIES,
     async fetchLive() {
       const [acc, collateral, positions, orders] = await Promise.all([
         account(),
@@ -43,21 +64,33 @@ export function createBackpackReader(client: BackpackClient, now: () => number =
         openOrders: parseOpenOrders(orders),
       });
     },
-    async fetchFills({ from, limit, offset }) {
-      const params = { limit, offset, ...(from === null ? {} : { from }) };
-      return parseFills(await client.signedGet("fillHistoryQueryAll", "/wapi/v1/history/fills", params));
+    async fetchFills({ from }) {
+      const fills = await pageAll(async (offset) => {
+        const params = { limit: PAGE, offset, ...(from === null ? {} : { from }) };
+        return parseFills(await client.signedGet("fillHistoryQueryAll", "/wapi/v1/history/fills", params));
+      });
+      return fills.sort((a, b) => a.at - b.at || Number(a.id) - Number(b.id));
     },
-    async fetchFunding({ from, limit, offset }) {
-      const params = { limit, offset, ...(from === null ? {} : { from }) };
-      return parseFunding(await client.signedGet("fundingHistoryQueryAll", "/wapi/v1/history/funding", params));
+    fetchFunding({ from }) {
+      return pageAll(async (offset) => {
+        const params = { limit: PAGE, offset, ...(from === null ? {} : { from }) };
+        return parseFunding(await client.signedGet("fundingHistoryQueryAll", "/wapi/v1/history/funding", params));
+      });
     },
-    async fetchPositionHistory({ limit, offset }) {
-      return parsePositionHistory(
-        await client.signedGet("positionHistoryQueryAll", "/wapi/v1/history/position", { limit, offset }),
+    fetchPositionHistory() {
+      return pageAll(async (offset) =>
+        parsePositionHistory(await client.signedGet("positionHistoryQueryAll", "/wapi/v1/history/position", { limit: PAGE, offset })),
       );
     },
-    async fetchOrderHistory({ limit, offset }) {
-      return parseOrderHistory(await client.signedGet("orderHistoryQueryAll", "/wapi/v1/history/orders", { limit, offset }));
+    async *orderHistory(): AsyncGenerator<OrderRecord[]> {
+      for (let offset = 0; ; offset += PAGE) {
+        const page = parseOrderHistory(
+          await client.signedGet("orderHistoryQueryAll", "/wapi/v1/history/orders", { limit: PAGE, offset }),
+        );
+        yield page;
+        if (page.length < PAGE) return;
+        await new Promise((r) => setTimeout(r, PAGE_PAUSE_MS));
+      }
     },
     async fetchCandles({ symbol, interval, from, to }) {
       return parseCandles(

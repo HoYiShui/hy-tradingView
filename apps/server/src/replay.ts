@@ -1,14 +1,13 @@
-import { Millis, type MarketSymbol, Price, Usd, type AccountSnapshot, type CandleInterval, type ReplayPayload } from "@hy/types";
+import { INTERVAL_MS, Millis, type MarketSymbol, Price, Usd, type AccountSnapshot, type CandleInterval, type ReplayPayload } from "@hy/types";
 import { encodeCandles, encodeFills, encodeFunding, encodeOrders, orderSpans } from "@hy/replay";
 import type { Store } from "./db.js";
-import { INTERVAL_MS } from "./history.js";
 
 const MAX_CANDLES = 120_000;
 
 export function buildReplayPayload(input: { store: Store; snapshot: AccountSnapshot; interval: CandleInterval; symbol: MarketSymbol }): ReplayPayload {
   const { store, snapshot, interval, symbol } = input;
   const at = snapshot.asOf;
-  const fills = store.allFills().filter((f) => f.at <= at);
+  const fills = store.allFills().filter((f) => f.market === "perp" && f.at <= at);
   const funding = store.allFunding().filter((f) => f.at <= at);
   const firstChartFill = store.earliestFillAt(symbol) ?? at;
   const step = INTERVAL_MS[interval];

@@ -16,7 +16,8 @@ describe.skipIf(!existsSync(DB))("saved real account (data/test.db)", () => {
       fill: {
         id: String(r.id), orderId: String(r.order_id), symbol: MarketSymbol.parse(r.symbol),
         side: r.side === "buy" ? "buy" : "sell", price: Price.parse(r.price), quantity: Qty.parse(r.quantity),
-        fee: Usd.parse(r.fee), liquidity: r.liquidity === "maker" ? "maker" : "taker", at: Millis.parse(r.at_ms),
+        fee: Usd.parse(r.fee), liquidity: r.liquidity === "maker" ? "maker" : "taker",
+        market: String(r.symbol).endsWith("_PERP") ? "perp" : "spot", closedPnl: null, at: Millis.parse(r.at_ms),
       },
     }));
     const funding = (db.prepare("SELECT * FROM funding").all() as Row[]).map((r): LedgerEvent => ({

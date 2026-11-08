@@ -29,8 +29,6 @@ export const EMPTY_BOOK: Book = { lots: {}, lastFill: {}, realized: 0, funding: 
 
 const FLAT_EPS = 1e-12;
 
-export const isPerp = (symbol: string) => symbol.endsWith("_PERP");
-
 export const eventAt = (e: LedgerEvent): number => (e.kind === "fill" ? e.fill.at : e.funding.at);
 
 const KIND_ORDER = { fill: 0, funding: 1 } as const;
@@ -68,7 +66,7 @@ export function apply(book: Book, event: LedgerEvent): Book {
     };
   }
   const { fill } = event;
-  if (!isPerp(fill.symbol)) return { ...book, applied };
+  if (fill.market !== "perp") return { ...book, applied };
   const signed = fill.side === "buy" ? fill.quantity : -fill.quantity;
   const next = applyFill(book.lots[fill.symbol] ?? FLAT, signed, fill.price);
   const lots = { ...book.lots };
@@ -122,6 +120,8 @@ export function toPositions(book: Book, marks: Marks): Position[] {
       markPrice: Price.parse(mark),
       breakEvenPrice: Price.parse(lot.entry),
       liquidationPrice: null,
+      margin: "cross",
+      leverage: null,
       notional: Usd.parse(notional),
       openPnl: Usd.parse((mark - lot.entry) * lot.qty),
       cumulativeFunding: Usd.parse(lot.funding),
