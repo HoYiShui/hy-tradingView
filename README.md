@@ -59,6 +59,10 @@ Set `ACCOUNT_<ID>_EXCHANGE=hyperliquid` and `ACCOUNT_<ID>_ADDRESS=0x...`. The de
 - Marks come from the chart market candles only. Other perp symbols are marked at their last fill price until the last event, then at the live mark. Spot fills are ignored, like the exchange's position fees. Hyperliquid spot fills are not stored.
 - `pnpm reconcile:replay <id>` compares the reconstruction with the real positions and equity. `pnpm bench:replay` times the reducer over the stored fills.
 
+## Credits
+
+Charts are drawn by [TradingView Lightweight Charts](https://www.tradingview.com/) (Apache-2.0). The chart's built-in logo is disabled, so the attribution notice lives in `NOTICE` and each page links to tradingview.com in its footer, as the library licence requires.
+
 ## Security
 
 The dashboard is public by design. Anyone who can reach the server can see the account. The keys are read-only, live only in the server environment, and are never sent to the browser. Config is validated at startup and error messages name variables without echoing values.

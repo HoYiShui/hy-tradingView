@@ -17,6 +17,7 @@ import { FillsTable } from "./FillsTable";
 import { PositionsPanel } from "./PositionsTable";
 import { ReplayChart } from "./ReplayChart";
 import { ReplayEquity } from "./ReplayEquity";
+import { Attribution } from "./Attribution";
 import { ReplayOrders } from "./ReplayOrders";
 import { Tile } from "./StatTiles";
 import { TooltipProvider } from "./ui/tooltip";
@@ -161,6 +162,7 @@ function ReplayPage({ account, accounts, onSelect }: { account: AccountInfo; acc
         {load.kind === "loading" && <div className="rounded border border-dashed border-border px-3 py-10 text-center text-muted-foreground">Loading history</div>}
         {load.kind === "error" && <div role="alert" className="rounded border border-dashed border-border px-3 py-10 text-center text-loss">Could not load replay ({load.message})</div>}
         {load.kind === "ready" && <Player key={load.model.interval} model={load.model} />}
+        <Attribution />
       </div>
     </TooltipProvider>
     </AccountProvider>

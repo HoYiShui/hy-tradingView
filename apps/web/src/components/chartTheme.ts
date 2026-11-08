@@ -8,6 +8,7 @@ export const BASE_CHART_OPTIONS: DeepPartial<ChartOptions> = {
     textColor: COLOR.muted,
     fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
     fontSize: 11,
+    attributionLogo: false,
     panes: { separatorColor: COLOR.axis, enableResize: false },
   },
   grid: { vertLines: { color: COLOR.grid }, horzLines: { color: COLOR.grid } },
