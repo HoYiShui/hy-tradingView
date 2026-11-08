@@ -1,3 +1,4 @@
+import type { Position } from "@hy/types";
 import { price, qty, SIGN_MARK, shortSymbol, signedUsd, signOf, usd } from "../lib/format";
 import { snapshotOf } from "../lib/status";
 import { SIGN_TEXT, cn } from "../lib/utils";
@@ -11,11 +12,14 @@ const NUM = "num text-right";
 
 export function PositionsTable({ className }: { className?: string }) {
   const snapshot = useFeedStore((s) => snapshotOf(s.feed));
-  const positions = snapshot?.positions ?? [];
+  return <PositionsPanel positions={snapshot?.positions ?? []} emptyText={snapshot !== null ? "No open positions" : "Waiting for data"} className={className} />;
+}
+
+export function PositionsPanel({ positions, emptyText, className }: { positions: readonly Position[]; emptyText: string; className?: string }) {
   return (
     <Panel title="Positions" className={className}>
       {positions.length === 0 ? (
-        <Empty>{snapshot !== null ? "No open positions" : "Waiting for data"}</Empty>
+        <Empty>{emptyText}</Empty>
       ) : (
         <Table>
           <TableHeader>

@@ -30,6 +30,7 @@ export function Header({ now }: { now: number }) {
           {status.label}
           {status.detail !== null && <span className="max-w-[360px] truncate font-normal text-secondary-foreground">{status.detail}</span>}
         </Badge>
+        <a href="/replay" className="text-primary hover:underline">Time machine</a>
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="num cursor-default text-muted-foreground">

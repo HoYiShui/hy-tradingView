@@ -5,7 +5,7 @@ import { useFeedStore } from "../store/feedStore";
 import { Flash } from "./Flash";
 import { Card } from "./ui/card";
 
-function Tile({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
+export function Tile({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
   return (
     <Card className="px-3 py-2">
       <div className="text-xs text-muted-foreground">{label}</div>

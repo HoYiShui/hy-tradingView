@@ -71,6 +71,10 @@ const served1h = candles.find((c: { start: number }) => c.start === Date.parse(`
 check(!!served1h && near(served1h.close, num(last.close), 50), `latest 1h candle close ${served1h?.close} vs direct ${last.close}`);
 check(candles.length >= 900, `1h candles served: ${candles.length}`);
 
+const replay = JSON.parse((await get("/api/replay?interval=1h")).text);
+check(near(replay.anchor.equity, snap.account.equity, 1), `replay anchor equity ${replay.anchor.equity.toFixed(2)} vs feed ${snap.account.equity.toFixed(2)}`);
+check(replay.fills.length >= directFills.length, `replay fills ${replay.fills.length} cover direct page ${directFills.length}`);
+
 await get("/api/pnl/daily");
 await get("/");
 const html = served.at(-2) ?? "";

@@ -10,9 +10,9 @@ export function buildReplayPayload(input: { store: Store; snapshot: AccountSnaps
   const at = snapshot.asOf;
   const fills = store.allFills().filter((f) => f.at <= at);
   const funding = store.allFunding().filter((f) => f.at <= at);
-  const first = fills[0]?.at ?? funding[0]?.at ?? at;
+  const firstChartFill = store.earliestFillAt(CHART_SYMBOL) ?? at;
   const step = INTERVAL_MS[interval];
-  const from = Millis.parse(Math.floor(first / step) * step - step);
+  const from = Millis.parse(Math.floor(firstChartFill / step) * step - step);
   const candles = store.candles({ symbol: CHART_SYMBOL, interval, since: from, limit: MAX_CANDLES });
   const marks = Object.fromEntries(snapshot.positions.map((p) => [p.symbol, Price.parse(p.markPrice)]));
   return {
@@ -23,6 +23,6 @@ export function buildReplayPayload(input: { store: Store; snapshot: AccountSnaps
     funding: encodeFunding(funding),
     candles: encodeCandles(candles),
     orders: encodeOrders(orderSpans({ orders: store.orders(), lastFillAt: store.lastFillByOrder(), now: at })),
-    candlesComplete: (candles[0]?.start ?? Infinity) <= first,
+    candlesComplete: (candles[0]?.start ?? Infinity) <= firstChartFill,
   };
 }

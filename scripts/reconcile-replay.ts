@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { resolve } from "node:path";
-import { MarketSymbol, Millis, Price, Usd, Qty, type LedgerEvent } from "../packages/types/src/index.js";
+import { MarketSymbol, Millis, Price, ReplayAnchor, Usd, Qty, type LedgerEvent } from "../packages/types/src/index.js";
 import { deriveBase, netPnl, reduceLedger, snapshotAt, sortLedger, type Marks } from "../packages/replay/src/index.js";
 import { loadConfig } from "../apps/server/src/config.js";
 import { loadRootEnv, repoRoot } from "../apps/server/src/env.js";
@@ -34,7 +34,7 @@ const marks: Record<string, number> = {};
 for (const p of real) marks[String(p["symbol"])] = Number(p["markPrice"]);
 const at = Date.now();
 const markMap: Marks = Object.fromEntries(Object.entries(marks).map(([s, price]) => [s, { price, at }]));
-const base = deriveBase({ at: Millis.parse(at), equity: Usd.parse(equity), marks }, book);
+const base = deriveBase(ReplayAnchor.parse({ at, equity, marks }), book);
 const end = snapshotAt({ book, at, marks: markMap, base });
 
 const pnl = (rows: Record<string, string>[]) => rows.reduce((s, p) => s + Number(p["pnlRealized"]) + Number(p["pnlUnrealized"]), 0);

@@ -28,6 +28,17 @@ For a single process, run `pnpm build` and then `pnpm --filter @hy/server start`
 - `apps/web` is Vite, React, Tailwind with shadcn/ui components, Lucide icons and lightweight-charts. One Zustand store holds the latest SSE snapshot and panels subscribe by selector. History and candles use plain fetch.
 - `pnpm verify:live` compares the running server with direct signed calls and greps served responses and the bundle for the key.
 
+## Time machine
+
+`/replay` replays the account's past trading like a first-person terminal: a clock with play and pause, speed presets (1x is one day per second, 20x is twenty), a scrub bar, and panels for header tiles, positions, open orders, fills, the BTC candle chart with B/S arrows, and an equity curve, all at clock time.
+
+- `packages/replay` holds the pure reducer. `reduceLedger` folds sorted fills and funding events into a `Book` (per-symbol quantity and average entry, realized PnL, funding, fees). `snapshotAt` marks it to the candles and derives equity, notional and cross leverage. `buildTimeline` and `seek` keep a checkpoint every 512 events, so advancing the clock applies only the new events and a scrub back replays at most 511.
+- Equity is back-derived with no capital config: the starting balance is today's real equity minus all later PnL, funding and fees minus open PnL. The curve is therefore only valid for an account without deposits or withdrawals. The `live` account has one deposit before its first fill, so it reconciles. The `test` account has 144 deposits and 53 withdrawals, so its equity curve is distorted even though its positions and PnL are exact.
+- `GET /api/replay?interval=` returns everything in compact tuples (fills, funding, candles from the first BTC fill, order spans, the equity anchor). It reads only SQLite and the in-memory snapshot, with no Backpack call. Order history syncs every 60 seconds into an `orders` table.
+- Open orders are approximate. Order history keeps only the final state, so a filled order is open from creation to its last fill (exact), and a cancelled one stays open until the next order on the same market and side, capped at 6 hours.
+- Marks come from the BTC candles only. Other perp symbols are marked at their last fill price until the last event, then at the live mark. Spot fills are ignored, like the exchange's position fees.
+- `pnpm reconcile:replay` compares the reconstruction with the real positions and equity (use `pnpm reconcile:replay:test` for the test account). `pnpm bench:replay` times the reducer over the stored fills.
+
 ## Security
 
 The dashboard is public by design. Anyone who can reach the server can see the account. The key is read-only, lives only in the server environment, and is never sent to the browser. Config is validated at startup and error messages name variables without echoing values.
