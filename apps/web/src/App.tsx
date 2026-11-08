@@ -1,6 +1,7 @@
 import { API, type AccountInfo, type DailyPnl, type Fill } from "@hy/types";
 import { useEffect, type ReactNode } from "react";
 import { Notice } from "./components/AccountsGate";
+import { Attribution } from "./components/Attribution";
 import { AccountSwitcher } from "./components/AccountSwitcher";
 import { FillsTable } from "./components/FillsTable";
 import { Header } from "./components/Header";
@@ -45,6 +46,7 @@ function Dashboard({ switcher }: { switcher: ReactNode }) {
             </div>
           </div>
         </main>
+        <Attribution />
       </div>
     </TooltipProvider>
   );
