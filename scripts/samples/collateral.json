@@ -1,0 +1,27 @@
+{
+  "assetsValue": "1002.7219897793",
+  "borrowLiability": "0",
+  "collateral": [
+    {
+      "assetMarkPrice": "1",
+      "availableQuantity": "0",
+      "balanceNotional": "1002.7013437793",
+      "collateralValue": "1002.7013437793",
+      "collateralWeight": "1",
+      "lendQuantity": "1002.7013437793",
+      "openOrderQuantity": "0",
+      "symbol": "USDC",
+      "totalQuantity": "1002.7013437793"
+    }
+  ],
+  "imf": "0.0146667499147899521664115159",
+  "liabilitiesValue": "0",
+  "marginFraction": "0.3931476326699052862684503506",
+  "mmf": "0.0077919501297197042043881594",
+  "netEquity": "1002.7219897793",
+  "netEquityAvailable": "965.31448319385",
+  "netEquityLocked": "37.407506585449999999999999983",
+  "netExposureFutures": "2550.497336",
+  "pnlUnrealized": "0.020646",
+  "unsettledEquity": "0"
+}

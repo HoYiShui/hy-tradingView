@@ -1,0 +1,16 @@
+[
+  {
+    "clientId": null,
+    "fee": "0.04995",
+    "feeSymbol": "USDC",
+    "isMaker": true,
+    "orderId": "76427144241",
+    "price": "75000",
+    "quantity": "0.00333",
+    "side": "Bid",
+    "symbol": "BTC_USDC_PERP",
+    "systemOrderType": null,
+    "timestamp": "2026-11-06T15:04:54.103",
+    "tradeId": 100386785
+  }
+]

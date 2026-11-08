@@ -1,0 +1,38 @@
+{
+  "assetsValue": "30.2049854041223",
+  "borrowLiability": "0",
+  "collateral": [
+    {
+      "assetMarkPrice": "1",
+      "availableQuantity": "0",
+      "balanceNotional": "0.1617163604",
+      "collateralValue": "0.1617163604",
+      "collateralWeight": "1",
+      "lendQuantity": "0.1617163604",
+      "openOrderQuantity": "0",
+      "symbol": "USDC",
+      "totalQuantity": "0.1617163604"
+    },
+    {
+      "assetMarkPrice": "187.57113719",
+      "availableQuantity": "0.26695",
+      "balanceNotional": "50.0721150728705",
+      "collateralValue": "30.0432690437223",
+      "collateralWeight": "0.6",
+      "lendQuantity": "0",
+      "openOrderQuantity": "0",
+      "symbol": "NVDA.US",
+      "totalQuantity": "0.26695"
+    }
+  ],
+  "imf": "0.0133333333333333333333333333",
+  "liabilitiesValue": "0",
+  "marginFraction": null,
+  "mmf": "0.007",
+  "netEquity": "30.2049854041223",
+  "netEquityAvailable": "30.2049854041223",
+  "netEquityLocked": "0",
+  "netExposureFutures": "0",
+  "pnlUnrealized": "0",
+  "unsettledEquity": "0"
+}

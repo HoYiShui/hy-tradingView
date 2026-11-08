@@ -1,0 +1,42 @@
+[
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-11-08T08:00:00",
+    "quantity": "-0.003159",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-11-08T07:00:00",
+    "quantity": "-0.003153",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-11-08T06:00:00",
+    "quantity": "-0.003153",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-11-08T05:00:00",
+    "quantity": "-0.003155",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  },
+  {
+    "fundingRate": "0.0000125",
+    "intervalEndTimestamp": "2026-11-08T04:00:00",
+    "quantity": "-0.003157",
+    "subaccountId": 0,
+    "symbol": "BTC_USDC_PERP",
+    "userId": 0
+  }
+]
